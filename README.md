@@ -42,13 +42,33 @@ Built with **Next.js 16** (App Router), **React 19**, **PostgreSQL** via **Prism
 
 ---
 
+## GitHub repository name & Vercel
+
+The canonical repo slug is **`franchise-draft-platform`**. If yours still exists as **`franchise-draft-platofrm`** (typo), fix it on GitHub:
+
+1. Open the repo on GitHub → **Settings** → **General** → **Repository name** → set to `franchise-draft-platform` → **Rename**.
+2. Update any local clone:
+
+   ```bash
+   git remote set-url origin git@github.com:manojd929/franchise-draft-platform.git
+   git fetch origin
+   ```
+
+3. **Vercel:** Open the project → **Settings** → **Git**. Confirm the connected repository is `manojd929/franchise-draft-platform`. If it still shows the old name or deploys do not run, use **Disconnect** (if available) and reconnect Git to the renamed repo.
+
+**CLI alternative** (from the repo root, with [GitHub CLI](https://cli.github.com/) logged in): `gh repo rename franchise-draft-platform`
+
+GitHub redirects the old URL for a while after rename, but Vercel should target the correct repository name so production hooks stay reliable.
+
+---
+
 ## Getting started
 
 ### 1. Clone and install
 
 ```bash
-git clone git@github.com:manojd929/franchise-draft-platofrm.git
-cd franchise-draft-platofrm
+git clone git@github.com:manojd929/franchise-draft-platform.git
+cd franchise-draft-platform
 npm install
 ```
 
