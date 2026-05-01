@@ -10,7 +10,10 @@ import {
   formatSquadValidationErrors,
   validateSquadRulesAgainstRoster,
 } from "@/lib/squad-rules/validate-squad-rules-against-roster";
+import { TEAM_OWNER_SYNC_STUB_NOTE } from "@/constants/team-owner-player";
 import { DEFAULT_PICKS_PER_TEAM } from "@/constants/tournament-defaults";
+import { buildFranchiseOwnerAssigneeList } from "@/lib/data/franchise-owner-assignees";
+import { deleteAuthUserIfNoOwnerReferences } from "@/services/franchise-owner-auth";
 import { tournamentSlugFromName } from "@/utils/tournament-slug";
 
 import type {
@@ -29,6 +32,41 @@ export class TournamentServiceError extends Error {
     super(message);
     this.name = "TournamentServiceError";
   }
+}
+
+async function removeFranchiseOwnerCredentialsIfOrphaned(
+  userId: string,
+): Promise<void> {
+  try {
+    await deleteAuthUserIfNoOwnerReferences(userId);
+  } catch (e) {
+    throw new TournamentServiceError(
+      e instanceof Error
+        ? e.message
+        : "Could not remove authentication for that owner.",
+    );
+  }
+}
+
+async function clearFranchiseOwnerLinksWhenNoTeamOwnership(
+  tournamentId: string,
+  ownerUserId: string,
+): Promise<void> {
+  const stillOwnsTeam = await prisma.team.count({
+    where: { tournamentId, deletedAt: null, ownerUserId },
+  });
+  if (stillOwnsTeam > 0) {
+    return;
+  }
+
+  await prisma.player.updateMany({
+    where: {
+      tournamentId,
+      deletedAt: null,
+      linkedOwnerUserId: ownerUserId,
+    },
+    data: { linkedOwnerUserId: null },
+  });
 }
 
 const DEFAULT_SQUAD_RULES = [
@@ -65,7 +103,7 @@ export async function syncOwnerPlayersForTournament(
       deletedAt: null,
       linkedOwnerUserId: { not: null },
     },
-    select: { id: true, linkedOwnerUserId: true, name: true },
+    select: { id: true, linkedOwnerUserId: true, name: true, notes: true },
   });
 
   function desiredOwnerName(profile: {
@@ -94,7 +132,7 @@ export async function syncOwnerPlayersForTournament(
           photoUrl: null,
           category: PlayerCategory.MEN_ADVANCED,
           gender: Gender.MALE,
-          notes: "Team owner — set category like any player from the Players page.",
+          notes: TEAM_OWNER_SYNC_STUB_NOTE,
           linkedOwnerUserId: ownerId,
         },
       });
@@ -112,7 +150,8 @@ export async function syncOwnerPlayersForTournament(
     .filter(
       (p) =>
         p.linkedOwnerUserId !== null &&
-        !ownerIds.includes(p.linkedOwnerUserId),
+        !ownerIds.includes(p.linkedOwnerUserId) &&
+        p.notes === TEAM_OWNER_SYNC_STUB_NOTE,
     )
     .map((p) => p.id);
 
@@ -217,6 +256,7 @@ export async function assertTournamentOwnership(slug: string, userId: string) {
 async function resolveTeamOwnerUserId(
   raw: string,
   commissionerUserId: string,
+  tournamentId: string,
 ): Promise<string | null> {
   const trimmed = raw.trim();
   if (trimmed === "") return null;
@@ -240,6 +280,27 @@ async function resolveTeamOwnerUserId(
       "No profile exists for that UUID yet. Ask the owner to sign in once, then assign them.",
     );
   }
+
+  const teams = await prisma.team.findMany({
+    where: { tournamentId, deletedAt: null },
+    select: { ownerUserId: true },
+  });
+  const existingTeamOwnerIds = teams
+    .map((team) => team.ownerUserId)
+    .filter((id): id is string => Boolean(id));
+
+  const assignees = await buildFranchiseOwnerAssigneeList({
+    tournamentId,
+    commissionerUserId,
+    existingTeamOwnerIds,
+  });
+
+  if (!assignees.some((person) => person.id === parsed.data)) {
+    throw new TournamentServiceError(
+      "That login cannot own a franchise here. Add them on Players first, grant a franchise login from their row, then assign the team.",
+    );
+  }
+
   return parsed.data;
 }
 
@@ -270,6 +331,7 @@ export async function createTeam(userId: string, input: CreateTeamInput) {
     ownerUserId = await resolveTeamOwnerUserId(
       input.ownerUserId,
       tournament.createdById,
+      tournamentId,
     );
   }
   await prisma.team.create({
@@ -310,14 +372,16 @@ export async function updateTeam(userId: string, input: UpdateTeamInput): Promis
       tournamentId,
       deletedAt: null,
     },
-    select: { id: true },
+    select: { id: true, ownerUserId: true },
   });
   if (!existing) {
     throw new TournamentServiceError("Team not found.");
   }
+  const previousOwnerUserId = existing.ownerUserId;
   const ownerUserId = await resolveTeamOwnerUserId(
     input.ownerUserId,
     tournament.createdById,
+    tournamentId,
   );
   await prisma.team.update({
     where: { id: input.teamId },
@@ -330,6 +394,134 @@ export async function updateTeam(userId: string, input: UpdateTeamInput): Promis
     },
   });
   await syncOwnerPlayersForTournament(tournamentId);
+
+  if (
+    previousOwnerUserId !== null &&
+    previousOwnerUserId !== ownerUserId
+  ) {
+    await clearFranchiseOwnerLinksWhenNoTeamOwnership(
+      tournamentId,
+      previousOwnerUserId,
+    );
+    await removeFranchiseOwnerCredentialsIfOrphaned(previousOwnerUserId);
+  }
+}
+
+export async function deleteFranchiseOwnerFromTournament(
+  commissionerUserId: string,
+  tournamentSlug: string,
+  ownerUserId: string,
+): Promise<void> {
+  const tournamentId = await assertTournamentOwnership(
+    tournamentSlug,
+    commissionerUserId,
+  );
+  const tournament = await prisma.tournament.findFirst({
+    where: { id: tournamentId },
+    select: { draftPhase: true, createdById: true },
+  });
+  if (!tournament) {
+    throw new TournamentServiceError("Tournament not found.");
+  }
+  if (
+    tournament.draftPhase !== DraftPhase.SETUP &&
+    tournament.draftPhase !== DraftPhase.READY
+  ) {
+    throw new TournamentServiceError(
+      "Cannot modify franchise owners after the draft configuration is sealed.",
+    );
+  }
+  if (ownerUserId === tournament.createdById) {
+    throw new TournamentServiceError("You cannot delete the commissioner login.");
+  }
+
+  await prisma.team.updateMany({
+    where: {
+      tournamentId,
+      deletedAt: null,
+      ownerUserId,
+    },
+    data: { ownerUserId: null },
+  });
+
+  await prisma.player.updateMany({
+    where: {
+      tournamentId,
+      deletedAt: null,
+      linkedOwnerUserId: ownerUserId,
+    },
+    data: { linkedOwnerUserId: null },
+  });
+
+  await syncOwnerPlayersForTournament(tournamentId);
+  await removeFranchiseOwnerCredentialsIfOrphaned(ownerUserId);
+}
+
+export async function revokeFranchiseLoginFromPlayer(
+  commissionerUserId: string,
+  tournamentSlug: string,
+  playerId: string,
+): Promise<void> {
+  const tournamentId = await assertTournamentOwnership(
+    tournamentSlug,
+    commissionerUserId,
+  );
+  const tournament = await prisma.tournament.findFirst({
+    where: { id: tournamentId },
+    select: { draftPhase: true },
+  });
+  if (!tournament) {
+    throw new TournamentServiceError("Tournament not found.");
+  }
+  if (
+    tournament.draftPhase !== DraftPhase.SETUP &&
+    tournament.draftPhase !== DraftPhase.READY
+  ) {
+    throw new TournamentServiceError(
+      "Cannot modify franchise owner logins after the draft configuration is sealed.",
+    );
+  }
+
+  const player = await prisma.player.findFirst({
+    where: {
+      id: playerId,
+      tournamentId,
+      deletedAt: null,
+    },
+    select: { linkedOwnerUserId: true },
+  });
+
+  if (!player) {
+    throw new TournamentServiceError("Player not found.");
+  }
+
+  const linkedUserId = player.linkedOwnerUserId;
+  if (!linkedUserId) {
+    throw new TournamentServiceError(
+      "This roster row does not have a franchise login.",
+    );
+  }
+
+  const ownsTeam = await prisma.team.count({
+    where: {
+      tournamentId,
+      deletedAt: null,
+      ownerUserId: linkedUserId,
+    },
+  });
+  if (ownsTeam > 0) {
+    throw new TournamentServiceError(
+      "Remove them from their franchise on the Teams page first, then revoke the login here.",
+    );
+  }
+
+  await prisma.player.update({
+    where: { id: playerId },
+    data: { linkedOwnerUserId: null },
+  });
+
+  await syncOwnerPlayersForTournament(tournamentId);
+  await removeFranchiseOwnerCredentialsIfOrphaned(linkedUserId);
 }
 
 export async function createPlayer(userId: string, input: CreatePlayerInput) {
@@ -439,7 +631,7 @@ export async function softDeletePlayer(
 
   if (existing.linkedOwnerUserId !== null) {
     throw new TournamentServiceError(
-      "Remove this person as franchise owner on the Teams page first, then delete their roster row.",
+      "Revoke the franchise login on the Players page first, or remove them as franchise owner on Teams, then delete this roster row.",
     );
   }
 

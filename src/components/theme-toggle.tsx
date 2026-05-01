@@ -7,7 +7,6 @@ import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
@@ -40,12 +39,21 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[11rem]">
-        <DropdownMenuLabel>Appearance</DropdownMenuLabel>
-        <DropdownMenuRadioGroup
-          value={theme}
+        <div role="group" aria-labelledby="theme-appearance-heading">
+          <div
+            id="theme-appearance-heading"
+            className="px-1.5 py-1 text-xs font-medium text-muted-foreground"
+          >
+            Appearance
+          </div>
+          <DropdownMenuRadioGroup
+            aria-labelledby="theme-appearance-heading"
+            value={theme}
           onValueChange={(value) => {
             if (value === "light" || value === "dark" || value === "system") {
-              setTheme(value);
+              queueMicrotask(() => {
+                setTheme(value);
+              });
             }
           }}
         >
@@ -61,7 +69,8 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
             <Monitor className="size-4" aria-hidden />
             System
           </DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
+          </DropdownMenuRadioGroup>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

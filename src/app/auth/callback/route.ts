@@ -19,7 +19,7 @@ export async function GET(request: Request) {
         try {
           await syncUserProfile(user);
         } catch {
-          /* Profile sync requires DATABASE_URL — non-fatal for OAuth redirect */
+          /* Profile sync requires DATABASE_URL; non-fatal for OAuth redirect */
         }
       }
       return NextResponse.redirect(`${origin}${nextPath}`);

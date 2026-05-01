@@ -90,7 +90,7 @@ export function SquadRulesForm({
               />
               <p className="text-xs leading-relaxed text-muted-foreground">
                 {teamCount <= 0 ? (
-                  <>Add teams first — fair-share caps use roster count ÷ teams.</>
+                  <>Add teams first. Fair-share caps use roster count ÷ teams.</>
                 ) : (
                   <>
                     <span className="text-foreground/90">{pool}</span>{" "}
@@ -115,7 +115,7 @@ export function SquadRulesForm({
                   <strong>
                     {remainder} player{remainder === 1 ? "" : "s"}
                   </strong>{" "}
-                  still exceed that symmetric split —{" "}
+                  still exceed that symmetric split:{" "}
                   <strong>recategorize {remainder}</strong>,{" "}
                   <strong>
                     add {addForEven} more here

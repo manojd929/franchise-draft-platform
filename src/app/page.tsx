@@ -32,7 +32,7 @@ export default function LandingPage() {
           Live player auction
         </p>
         <h1 className="mt-4 max-w-4xl text-balance text-3xl font-semibold leading-tight tracking-tight sm:mt-8 sm:text-5xl md:text-6xl lg:text-7xl dark:text-white">
-          Run a calm auction for your club — teams, photos, turn order, TV screen.
+          Run a calm auction for your club with teams, photos, and turn order.
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:mt-8 sm:text-lg md:text-xl dark:text-white/75">
           One organizer runs the computer. Owners pick players by name. Everyone sees the photos at

@@ -4,13 +4,18 @@ import { revalidatePath } from "next/cache";
 
 import { syncUserProfile } from "@/lib/auth/profile";
 import { requireSessionUser } from "@/lib/auth/session";
-import { createLeagueOwnerAccount } from "@/services/league-account-service";
+import {
+  createLeagueOwnerAccount,
+  createLeagueOwnerForPlayerAccount,
+} from "@/services/league-account-service";
 import {
   assertTournamentOwnership,
   createPlayer,
   createTeam,
   createTournament,
+  deleteFranchiseOwnerFromTournament,
   reconcileSquadRulesForTournament,
+  revokeFranchiseLoginFromPlayer,
   saveSquadRules,
   softDeletePlayer,
   softDeleteTournament,
@@ -19,7 +24,12 @@ import {
   updateTeam,
   updateTournament,
 } from "@/services/tournament-service";
-import { createLeagueOwnerSchema } from "@/validations/league-account";
+import {
+  createLeagueOwnerForPlayerSchema,
+  createLeagueOwnerSchema,
+  deleteFranchiseOwnerSchema,
+  revokeFranchiseLoginFromPlayerSchema,
+} from "@/validations/league-account";
 import {
   createPlayerSchema,
   createTeamSchema,
@@ -117,6 +127,7 @@ export async function updateTeamAction(input: unknown): Promise<TournamentAction
     const slug = parsed.data.tournamentSlug;
     revalidatePath(`/tournament/${slug}`, "layout");
     revalidatePath(`/tournament/${slug}/teams`);
+    revalidatePath(`/tournament/${slug}/players`);
     return { ok: true, slug };
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
@@ -259,7 +270,88 @@ export async function createLeagueOwnerAction(
     const slug = parsed.data.tournamentSlug;
     revalidatePath(`/tournament/${slug}`, "layout");
     revalidatePath(`/tournament/${slug}/teams`);
+    revalidatePath(`/tournament/${slug}/players`);
     return { ok: true, email };
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return { ok: false, error: "Unauthorized" };
+    }
+    return handle(e);
+  }
+}
+
+export async function createLeagueOwnerForPlayerAction(
+  input: unknown,
+): Promise<TournamentActionResult> {
+  try {
+    const parsed = createLeagueOwnerForPlayerSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: "Use a valid email and password (at least 8 characters).",
+      };
+    }
+    const user = await requireSessionUser();
+    const { email } = await createLeagueOwnerForPlayerAccount(user.id, parsed.data);
+    const slug = parsed.data.tournamentSlug;
+    revalidatePath(`/tournament/${slug}`, "layout");
+    revalidatePath(`/tournament/${slug}/teams`);
+    revalidatePath(`/tournament/${slug}/players`);
+    return { ok: true, email };
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return { ok: false, error: "Unauthorized" };
+    }
+    return handle(e);
+  }
+}
+
+export async function deleteFranchiseOwnerAction(
+  input: unknown,
+): Promise<TournamentActionResult> {
+  try {
+    const parsed = deleteFranchiseOwnerSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: "Invalid owner selection." };
+    }
+    const user = await requireSessionUser();
+    await deleteFranchiseOwnerFromTournament(
+      user.id,
+      parsed.data.tournamentSlug,
+      parsed.data.ownerUserId,
+    );
+    const slug = parsed.data.tournamentSlug;
+    revalidatePath(`/tournament/${slug}`, "layout");
+    revalidatePath(`/tournament/${slug}/teams`);
+    revalidatePath(`/tournament/${slug}/players`);
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return { ok: false, error: "Unauthorized" };
+    }
+    return handle(e);
+  }
+}
+
+export async function revokeFranchiseLoginFromPlayerAction(
+  input: unknown,
+): Promise<TournamentActionResult> {
+  try {
+    const parsed = revokeFranchiseLoginFromPlayerSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: "Invalid player." };
+    }
+    const user = await requireSessionUser();
+    await revokeFranchiseLoginFromPlayer(
+      user.id,
+      parsed.data.tournamentSlug,
+      parsed.data.playerId,
+    );
+    const slug = parsed.data.tournamentSlug;
+    revalidatePath(`/tournament/${slug}`, "layout");
+    revalidatePath(`/tournament/${slug}/teams`);
+    revalidatePath(`/tournament/${slug}/players`);
+    return { ok: true };
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
       return { ok: false, error: "Unauthorized" };

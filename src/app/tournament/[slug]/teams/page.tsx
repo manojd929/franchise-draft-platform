@@ -14,6 +14,7 @@ import { RemoveTeamOwnerButton } from "@/features/tournaments/remove-team-owner-
 import { TeamEditDialog } from "@/features/tournaments/team-edit-dialog";
 import { TeamOwnerEditDialog } from "@/features/tournaments/team-owner-edit-dialog";
 import { TeamsQuickAdd } from "@/features/tournaments/teams-quick-add";
+import { DraftPhase } from "@/generated/prisma/enums";
 import { buildFranchiseOwnerAssigneeList } from "@/lib/data/franchise-owner-assignees";
 import { getSessionUser } from "@/lib/auth/session";
 import { requireTournamentAccess } from "@/lib/data/tournament-access";
@@ -57,6 +58,10 @@ export default async function TeamsPage({ params }: PageProps) {
     existingTeamOwnerIds,
   });
 
+  const canInviteOwners =
+    tournament.draftPhase === DraftPhase.SETUP ||
+    tournament.draftPhase === DraftPhase.READY;
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <header>
@@ -67,9 +72,16 @@ export default async function TeamsPage({ params }: PageProps) {
         </p>
       </header>
 
-      <InviteOwnerPanel tournamentSlug={slug} invitingSupported={invitingSupported} />
+      <InviteOwnerPanel
+        tournamentSlug={slug}
+        invitingSupported={invitingSupported}
+        canInviteOwners={canInviteOwners}
+      />
 
       <FranchiseOwnersSummary
+        tournamentSlug={slug}
+        invitingSupported={invitingSupported}
+        canInviteOwners={canInviteOwners}
         assignablePeople={assignablePeople}
         teams={teams.map((team) => ({
           id: team.id,
@@ -98,18 +110,18 @@ export default async function TeamsPage({ params }: PageProps) {
             {teams.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-muted-foreground">
-                  No teams yet — use the form above.
+                  No teams yet. Use the form above.
                 </TableCell>
               </TableRow>
             ) : (
               teams.map((team) => (
                 <TableRow key={team.id}>
                   <TableCell className="align-middle font-medium">{team.name}</TableCell>
-                  <TableCell className="align-middle">{team.shortName ?? "—"}</TableCell>
+                  <TableCell className="align-middle">{team.shortName ?? "-"}</TableCell>
                   <TableCell className="align-middle">
                     <div className="flex min-w-0 max-w-[min(26rem,92vw)] flex-col gap-2 lg:max-w-none lg:flex-row lg:items-center lg:gap-3">
                       <span className="min-w-0 flex-1 text-sm leading-snug break-words">
-                        {team.owner ? (team.owner.displayName ?? team.owner.email) : "—"}
+                        {team.owner ? (team.owner.displayName ?? team.owner.email) : "-"}
                       </span>
                       <div className="flex shrink-0 flex-wrap items-center gap-2">
                         <TeamOwnerEditDialog

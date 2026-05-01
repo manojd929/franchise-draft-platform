@@ -14,40 +14,36 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { updateTeamAction } from "@/features/tournaments/actions";
-import type { TeamEditSnapshot } from "@/features/tournaments/team-edit-dialog";
+import { revokeFranchiseLoginFromPlayerAction } from "@/features/tournaments/actions";
 import { cn } from "@/lib/utils";
 
-interface RemoveTeamOwnerButtonProps {
+interface RevokeFranchiseLoginButtonProps {
   tournamentSlug: string;
-  team: TeamEditSnapshot;
+  playerId: string;
+  playerName: string;
+  canInviteOwners: boolean;
   className?: string;
 }
 
-export function RemoveTeamOwnerButton({
+export function RevokeFranchiseLoginButton({
   tournamentSlug,
-  team,
+  playerId,
+  playerName,
+  canInviteOwners,
   className,
-}: RemoveTeamOwnerButtonProps) {
+}: RevokeFranchiseLoginButtonProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const hasOwner = Boolean(team.ownerUserId?.trim());
-
-  async function confirmRemove(): Promise<void> {
+  async function confirmRevoke(): Promise<void> {
     setError(null);
     setBusy(true);
     try {
-      const result = await updateTeamAction({
+      const result = await revokeFranchiseLoginFromPlayerAction({
         tournamentSlug,
-        teamId: team.id,
-        name: team.name,
-        shortName: team.shortName ?? "",
-        logoUrl: team.logoUrl ?? "",
-        colorHex: team.colorHex ?? "",
-        ownerUserId: "",
+        playerId,
       });
       if (!result.ok) {
         setError(result.error);
@@ -60,35 +56,39 @@ export function RemoveTeamOwnerButton({
     }
   }
 
-  if (!hasOwner) {
-    return null;
-  }
+  const lockedTitle =
+    "Owner logins cannot be changed after the draft configuration is sealed.";
 
   return (
     <>
       <Button
         type="button"
         variant="outline"
+        size="sm"
+        title={!canInviteOwners ? lockedTitle : undefined}
+        disabled={!canInviteOwners}
         className={cn(
-          "h-8 min-h-8 w-full px-3 text-xs touch-manipulation border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto sm:min-w-[5.5rem] sm:px-3",
+          "min-h-11 touch-manipulation border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:min-h-8",
+          !canInviteOwners && "pointer-events-none opacity-50",
           className,
         )}
         onClick={() => {
+          if (!canInviteOwners) return;
           setError(null);
           setOpen(true);
         }}
       >
-        Remove owner
+        Revoke login
       </Button>
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent className="sm:max-w-md" size="default">
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove franchise owner?</AlertDialogTitle>
+            <AlertDialogTitle>Revoke franchise login?</AlertDialogTitle>
             <AlertDialogDescription className="text-left">
-              <span className="font-medium text-foreground">{team.name}</span> will have no owner
-              login until you assign someone again. Sync clears auto-created roster stubs when needed.
-              If they had player-first login only here and no other franchises rely on them, their
-              Supabase credentials are removed automatically.
+              Removes Supabase credentials for{" "}
+              <span className="font-medium text-foreground">{playerName}</span> when they are not
+              assigned to a franchise on Teams. If they still control a team, remove them there
+              first.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error ? (
@@ -107,10 +107,10 @@ export function RemoveTeamOwnerButton({
               disabled={busy}
               onClick={(event) => {
                 event.preventDefault();
-                void confirmRemove();
+                void confirmRevoke();
               }}
             >
-              {busy ? "Removing…" : "Remove owner"}
+              {busy ? "Revoking…" : "Revoke login"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

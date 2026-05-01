@@ -46,7 +46,7 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
         <Script id="theme-init" strategy="beforeInteractive">
-          {`(function(){try{var k=${JSON.stringify(APP_THEME_STORAGE_KEY)};var s=localStorage.getItem(k);var r=document.documentElement;r.classList.remove("light","dark");var a;if(s==="light"||s==="dark")a=s;else if(s==="system")a=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";else a="dark";r.classList.add(a);}catch(e){document.documentElement.classList.remove("light","dark");document.documentElement.classList.add("dark");}})();`}
+          {`(function(){try{var k=${JSON.stringify(APP_THEME_STORAGE_KEY)};var s=localStorage.getItem(k);var r=document.documentElement;r.classList.remove("light","dark");var d;if(s==="light")d=!1;else if(s==="dark")d=!0;else if(s==="system")d=window.matchMedia("(prefers-color-scheme: dark)").matches;else d=!0;if(d)r.classList.add("dark");}catch(e){document.documentElement.classList.remove("light","dark");document.documentElement.classList.add("dark");}})();`}
         </Script>
         <Providers>{children}</Providers>
       </body>

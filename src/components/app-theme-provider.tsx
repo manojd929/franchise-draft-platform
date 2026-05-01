@@ -2,12 +2,11 @@
 
 import {
   createContext,
+  startTransition,
   useCallback,
   useContext,
   useEffect,
-  useLayoutEffect,
   useMemo,
-  useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
@@ -47,10 +46,13 @@ function resolveAppliedTheme(theme: AppTheme): "dark" | "light" {
   return theme;
 }
 
+/** Light mode = no `dark` class (shadcn-style). Clears legacy `light` class from older builds. */
 function applyThemeClass(applied: "dark" | "light"): void {
   const root = document.documentElement;
   root.classList.remove("light", "dark");
-  root.classList.add(applied);
+  if (applied === "dark") {
+    root.classList.add("dark");
+  }
 }
 
 function applyResolvedTheme(themeMode: AppTheme, disableTransition: boolean): void {
@@ -83,34 +85,36 @@ export function AppThemeProvider({
   disableTransitionOnChange = false,
 }: AppThemeProviderProps) {
   const [theme, setThemeState] = useState<AppTheme>(defaultTheme);
-  const didSyncFromStorageRef = useRef(false);
+  const [hasReadStoredPreference, setHasReadStoredPreference] = useState(false);
 
-  useLayoutEffect(() => {
-    if (typeof window === "undefined") return;
-
-    if (!didSyncFromStorageRef.current) {
-      didSyncFromStorageRef.current = true;
-      const stored = readStoredTheme(enableSystem, defaultTheme);
+  /** Single mount path: read storage once so we never apply stale defaultTheme over real preference. */
+  useEffect(() => {
+    const stored = readStoredTheme(enableSystem, defaultTheme);
+    startTransition(() => {
       setThemeState(stored);
-      applyResolvedTheme(stored, disableTransitionOnChange);
-      return;
-    }
+      setHasReadStoredPreference(true);
+    });
+  }, [defaultTheme, enableSystem]);
 
+  /** Runs only after localStorage has been merged into React state (avoids mount race with stale theme). */
+  useEffect(() => {
+    if (!hasReadStoredPreference) return;
     applyResolvedTheme(theme, disableTransitionOnChange);
     try {
       window.localStorage.setItem(APP_THEME_STORAGE_KEY, theme);
     } catch {
       /* ignore */
     }
-  }, [theme, defaultTheme, enableSystem, disableTransitionOnChange]);
+  }, [disableTransitionOnChange, hasReadStoredPreference, theme]);
 
   useEffect(() => {
+    if (!hasReadStoredPreference) return undefined;
     if (!enableSystem || theme !== "system") return undefined;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => applyResolvedTheme("system", disableTransitionOnChange);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
-  }, [disableTransitionOnChange, enableSystem, theme]);
+  }, [disableTransitionOnChange, enableSystem, hasReadStoredPreference, theme]);
 
   const setTheme = useCallback((next: AppTheme) => {
     setThemeState(next);

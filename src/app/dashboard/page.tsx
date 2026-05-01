@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -81,7 +80,6 @@ export default async function DashboardPage() {
           >
             New tournament
           </Link>
-          <SignOutButton className="min-h-11 w-full sm:w-auto" variant="outline" />
         </div>
       </header>
 

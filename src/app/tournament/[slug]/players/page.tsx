@@ -9,16 +9,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DeletePlayerButton } from "@/features/tournaments/delete-player-button";
+import { GrantFranchiseLoginDialog } from "@/features/tournaments/grant-franchise-login-dialog";
 import { PlayerEditDialog } from "@/features/tournaments/player-edit-dialog";
 import { PlayersCategoryDashboard } from "@/features/tournaments/players-category-dashboard";
 import { PlayersQuickAdd } from "@/features/tournaments/players-quick-add";
+import { RevokeFranchiseLoginButton } from "@/features/tournaments/revoke-franchise-login-button";
 import { PLAYER_CATEGORY_LABEL } from "@/constants/player-labels";
 import type { PlayerCategory } from "@/generated/prisma/enums";
+import { DraftPhase } from "@/generated/prisma/enums";
 import { getSessionUser } from "@/lib/auth/session";
 import { requireTournamentAccess } from "@/lib/data/tournament-access";
 import { SQUAD_RULE_CATEGORY_ORDER } from "@/lib/squad-rules/compute-per-team-caps";
 import { prisma } from "@/lib/prisma";
 import { isLeagueImageUploadConfigured } from "@/lib/uploads/league-image-blob-env";
+import { isLeagueOwnerInviteConfigured } from "@/services/league-account-service";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +40,10 @@ export default async function PlayersPage({ params }: PageProps) {
   const tournament = await requireTournamentAccess(slug, user.id);
 
   const uploadsEnabled = isLeagueImageUploadConfigured();
+  const invitingSupported = isLeagueOwnerInviteConfigured();
+  const canInviteOwners =
+    tournament.draftPhase === DraftPhase.SETUP ||
+    tournament.draftPhase === DraftPhase.READY;
 
   const players = await prisma.player.findMany({
     where: { tournamentId: tournament.id, deletedAt: null },
@@ -55,9 +63,10 @@ export default async function PlayersPage({ params }: PageProps) {
       <header>
         <h2 className="text-xl font-semibold tracking-tight sm:text-2xl lg:text-3xl">Players</h2>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-          Add each person&apos;s name, group, and gender. Upload a photo or paste an image link —
-          photos show on the auction board. Franchise owners appear here too once assigned on Teams —
-          edit their category or photo like anyone else.
+          Add each person&apos;s name, group, and gender. Upload a photo or paste an image link so
+          photos show on the auction board. Create their roster row here first, then use Grant
+          login when they should pick as a franchise owner; assign their team from Teams and share
+          email and password outside this app.
         </p>
       </header>
 
@@ -97,7 +106,7 @@ export default async function PlayersPage({ params }: PageProps) {
                       player.isLocked ? "Locked" : null,
                     ]
                       .filter(Boolean)
-                      .join(" · ") || "—"}
+                      .join(" · ") || "-"}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
@@ -113,6 +122,22 @@ export default async function PlayersPage({ params }: PageProps) {
                           notes: player.notes,
                         }}
                       />
+                      {player.linkedOwnerUserId ? (
+                        <RevokeFranchiseLoginButton
+                          tournamentSlug={slug}
+                          playerId={player.id}
+                          playerName={player.name}
+                          canInviteOwners={canInviteOwners}
+                        />
+                      ) : (
+                        <GrantFranchiseLoginDialog
+                          tournamentSlug={slug}
+                          playerId={player.id}
+                          playerName={player.name}
+                          invitingSupported={invitingSupported}
+                          canInviteOwners={canInviteOwners}
+                        />
+                      )}
                       <DeletePlayerButton
                         tournamentSlug={slug}
                         playerId={player.id}
@@ -120,7 +145,7 @@ export default async function PlayersPage({ params }: PageProps) {
                         disabled={player.linkedOwnerUserId !== null}
                         disabledReason={
                           player.linkedOwnerUserId !== null
-                            ? "Remove franchise owner on Teams before deleting this roster row."
+                            ? "Revoke franchise login first (or remove them on Teams), then you can delete this roster row."
                             : undefined
                         }
                       />

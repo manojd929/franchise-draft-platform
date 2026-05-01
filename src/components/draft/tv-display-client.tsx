@@ -64,7 +64,7 @@ export function TvDisplayClient({ slug, initialSnapshot }: TvDisplayClientProps)
               )}
             </span>
             {" / "}
-            {snapshot.draftSlotsTotal || "—"}
+            {snapshot.draftSlotsTotal || "-"}
           </p>
         </div>
       </header>

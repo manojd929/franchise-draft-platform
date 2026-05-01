@@ -1,7 +1,7 @@
 /**
  * Demo tournament: two franchised teams with owners + twenty men's intermediate pool players.
  *
- * Intended for **local or staging** provisioning only. Run manually — never from Vercel build.
+ * Intended for **local or staging** provisioning only. Run manually; never from Vercel build.
  *
  * Required env:
  * - DATABASE_URL
@@ -13,11 +13,11 @@
  * - DEMO_SEED_OWNER_1_EMAIL / DEMO_SEED_OWNER_1_PASSWORD
  * - DEMO_SEED_OWNER_2_EMAIL / DEMO_SEED_OWNER_2_PASSWORD
  * - DEMO_SEED_TOURNAMENT_NAME (default: Demo Two-Owner League)
- * - NEXT_PUBLIC_APP_ORIGIN — printed hub URLs (default http://localhost:3000)
+ * - NEXT_PUBLIC_APP_ORIGIN: printed hub URLs (default http://localhost:3000)
  *
  * Credential printing:
- * - DEMO_SEED_PRINT_CREDENTIALS=1 — always print passwords to stdout
- * - DEMO_SEED_PRINT_CREDENTIALS=0 — never print passwords (recommended for shared logs / CI)
+ * - DEMO_SEED_PRINT_CREDENTIALS=1: always print passwords to stdout
+ * - DEMO_SEED_PRINT_CREDENTIALS=0: never print passwords (recommended for shared logs / CI)
  * - If unset: passwords print only when NODE_ENV !== "production"
  *
  * Run: npm run seed:demo-tournament
@@ -285,14 +285,14 @@ async function main(): Promise<void> {
   console.info(`Owner board: ${baseUrl}/tournament/${slug}/owner`);
 
   if (printSecrets) {
-    console.info("\n── Logins (handle stdout like a secret — demo only) ──");
+    console.info("\n── Logins (handle stdout like a secret; demo only) ──");
     console.info("Commissioner (runs Admin / league setup)");
     console.info(`  Email: ${creds.commissionerEmail}`);
     console.info(`  Password: ${creds.commissionerPassword}`);
-    console.info("Owner 1 — North Franchise");
+    console.info("Owner 1: North Franchise");
     console.info(`  Email: ${creds.owner1Email}`);
     console.info(`  Password: ${creds.owner1Password}`);
-    console.info("Owner 2 — South Franchise");
+    console.info("Owner 2: South Franchise");
     console.info(`  Email: ${creds.owner2Email}`);
     console.info(`  Password: ${creds.owner2Password}`);
   } else {

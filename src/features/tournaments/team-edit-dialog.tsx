@@ -88,13 +88,13 @@ export function TeamEditDialog({
         className="h-8 min-h-8 px-3 text-xs touch-manipulation sm:h-8 sm:min-h-8"
         onClick={openDialog}
       >
-        Franchise
+        Edit franchise
       </Button>
       <DialogContent className="sm:max-w-lg" showCloseButton>
         <DialogHeader>
           <DialogTitle>Edit franchise</DialogTitle>
           <DialogDescription>
-            Name, ticker, broadcast branding — assign or change the owner from the Owner column on
+            Name, ticker, broadcast branding. Assign or change the owner from the Owner column on
             the table.
           </DialogDescription>
         </DialogHeader>

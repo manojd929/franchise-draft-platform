@@ -1,6 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { ROUTES } from "@/constants/app";
+import { sanitizeNextPath } from "@/lib/navigation/sanitize-next-path";
+
 function isProtectedPath(pathname: string): boolean {
   if (
     pathname === "/" ||
@@ -55,6 +58,17 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (user && request.nextUrl.pathname === ROUTES.login) {
+    const destination = sanitizeNextPath(
+      request.nextUrl.searchParams.get("next"),
+      ROUTES.dashboard,
+    );
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = destination;
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl);
+  }
 
   if (!user && isProtectedPath(request.nextUrl.pathname)) {
     const redirectUrl = request.nextUrl.clone();

@@ -1,9 +1,8 @@
-import Link from "next/link";
+import { AccountHeaderActions } from "@/components/auth/account-header-actions";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { SignOutButton } from "@/components/auth/sign-out-button";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { ROUTES } from "@/constants/app";
 import { getTournamentBySlug } from "@/lib/data/tournament-access";
 
@@ -69,9 +68,8 @@ export default async function TournamentLayout({
               </div>
             </div>
             <div className="-mx-1 flex flex-col gap-3 sm:mx-0 lg:max-w-[min(100%,42rem)] lg:flex-1">
-              <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
-                <SignOutButton className="flex-1 sm:flex-none sm:min-w-[8rem]" variant="outline" />
-                <ThemeToggle />
+              <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
+                <AccountHeaderActions signOutButtonClassName="flex-1 sm:flex-none sm:min-w-[8rem]" />
               </div>
               <nav
                 aria-label="Tournament sections"

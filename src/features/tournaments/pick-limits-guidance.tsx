@@ -40,7 +40,7 @@ export function PickLimitsGuidance({
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           Pick limits cap how many players each franchise may take from each group (Beginner,
           Intermediate, Advanced, Women). They do not change how many turns each team gets in the
-          snake draft — that comes from{" "}
+          snake draft. That comes from{" "}
           <strong className="font-medium text-foreground">picks each team makes</strong> set when the
           tournament was created.
         </p>
@@ -71,7 +71,7 @@ export function PickLimitsGuidance({
               is: <strong className="font-medium text-foreground">picks each team makes</strong>, which
               was set when this tournament was created (including if you kept the default). They do{" "}
               <strong className="font-medium text-foreground">not</strong> come from the category pick
-              limits on this page — those caps govern who can be taken from each group, not how many
+              limits on this page. Those caps govern who can be taken from each group, not how many
               total rounds the draft has.
             </p>
             <p className="text-sm leading-relaxed text-muted-foreground">
@@ -112,7 +112,7 @@ export function PickLimitsGuidance({
                       <strong className="font-medium text-foreground">
                         {extraPlayersBeyondDraft}
                       </strong>{" "}
-                      stay on the roster — that is normal, not an error. They are still subject to your
+                      stay on the roster. That is normal, not an error. They are still subject to your
                       category caps for any pick that reaches them; the short snake simply means not
                       everyone will be picked in this run.
                     </>

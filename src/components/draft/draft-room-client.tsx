@@ -159,7 +159,7 @@ export function DraftRoomClient({
             </Badge>
             <Badge variant="secondary">
               Pick {Math.min(effectiveSnapshot.currentSlotIndex + 1, Math.max(effectiveSnapshot.draftSlotsTotal, 1))}{" "}
-              / {effectiveSnapshot.draftSlotsTotal || "—"}
+              / {effectiveSnapshot.draftSlotsTotal || "-"}
             </Badge>
           </div>
           <Separator className="my-3 sm:my-4" />
@@ -173,7 +173,7 @@ export function DraftRoomClient({
                   : "border-border bg-muted/30",
               )}
             >
-              {currentTeam?.name ?? "—"}
+              {currentTeam?.name ?? "-"}
             </div>
             {viewerOwnsClock ? (
               <p className="text-xs text-emerald-600 dark:text-emerald-400">It is your turn to pick.</p>

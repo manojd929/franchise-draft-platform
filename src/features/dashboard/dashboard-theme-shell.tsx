@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { SignOutButton } from "@/components/auth/sign-out-button";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AccountHeaderActions } from "@/components/auth/account-header-actions";
 import { cn } from "@/lib/utils";
 import {
   DASHBOARD_THEME_STORAGE_KEY,
@@ -70,43 +69,42 @@ export function DashboardThemeShell({
       </div>
 
       <div className="sticky top-0 z-20 border-b border-border/40 bg-background/55 px-4 py-3 backdrop-blur-md md:px-6">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
-            <ThemeToggle />
-            <SignOutButton className="flex-1 sm:flex-none sm:min-w-[8rem]" variant="outline" />
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <div className="text-xs text-muted-foreground">
               <span className="font-medium text-foreground">Floor theme</span>
-              <span className="hidden sm:inline"> — </span>
+              <span className="hidden sm:inline"> · </span>
               <span className="block sm:inline">
                 {dashboardSportThemeOptions.find((o) => o.id === theme)?.hint ?? ""}
               </span>
             </div>
+            <div
+              className="flex flex-wrap gap-1.5 sm:justify-start"
+              role="radiogroup"
+              aria-label="Dashboard sport background"
+            >
+              {dashboardSportThemeOptions.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={theme === opt.id}
+                  disabled={!hydrated}
+                  onClick={() => persist(opt.id)}
+                  className={cn(
+                    "min-h-10 touch-manipulation rounded-full border px-3 py-2 text-xs font-medium transition-colors",
+                    theme === opt.id
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                      : "border-border/70 bg-background/70 text-foreground hover:bg-accent hover:text-accent-foreground",
+                    !hydrated && "opacity-60",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div
-            className="flex flex-wrap gap-1.5 sm:justify-end"
-            role="radiogroup"
-            aria-label="Dashboard sport background"
-          >
-            {dashboardSportThemeOptions.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                role="radio"
-                aria-checked={theme === opt.id}
-                disabled={!hydrated}
-                onClick={() => persist(opt.id)}
-                className={cn(
-                  "min-h-10 touch-manipulation rounded-full border px-3 py-2 text-xs font-medium transition-colors",
-                  theme === opt.id
-                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                    : "border-border/70 bg-background/70 text-foreground hover:bg-accent hover:text-accent-foreground",
-                  !hydrated && "opacity-60",
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          <AccountHeaderActions />
         </div>
       </div>
 

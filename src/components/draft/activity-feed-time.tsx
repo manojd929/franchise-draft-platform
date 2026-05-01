@@ -10,7 +10,7 @@ interface ActivityFeedTimeProps {
  * Activity log timestamps: avoid SSR/client `toLocaleTimeString()` mismatches (locale + 12h vs 24h).
  */
 export function ActivityFeedTime({ iso }: ActivityFeedTimeProps) {
-  const [label, setLabel] = useState("—");
+  const [label, setLabel] = useState("-");
 
   useEffect(() => {
     queueMicrotask(() => {

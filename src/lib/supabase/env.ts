@@ -1,4 +1,4 @@
-/** Pure env checks safe for Client Components — no `next/headers`. */
+/** Pure env checks safe for Client Components (no `next/headers`). */
 
 export function isSupabaseConfigured(): boolean {
   return Boolean(

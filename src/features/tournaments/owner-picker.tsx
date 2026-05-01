@@ -23,7 +23,7 @@ interface OwnerPickerProps {
   onChange: (userId: string) => void;
   people: AssignablePerson[];
   className?: string;
-  /** When true, only the select is rendered — pair with a sibling Label that uses the same `id`. */
+  /** When true, only the select is rendered; pair with a sibling Label that uses the same `id`. */
   hideLabel?: boolean;
 }
 
@@ -61,7 +61,7 @@ export function OwnerPicker({
         >
           <SelectValue placeholder="Choose someone…">
             {selectValue === NONE_VALUE
-              ? undefined
+              ? "No owner yet"
               : selectedPerson
                 ? formatAssignablePersonLabel(selectedPerson)
                 : "Owner profile unavailable"}

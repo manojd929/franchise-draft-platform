@@ -11,11 +11,13 @@ import { createLeagueOwnerAction } from "@/features/tournaments/actions";
 interface InviteOwnerPanelProps {
   tournamentSlug: string;
   invitingSupported: boolean;
+  canInviteOwners: boolean;
 }
 
 export function InviteOwnerPanel({
   tournamentSlug,
   invitingSupported,
+  canInviteOwners,
 }: InviteOwnerPanelProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function InviteOwnerPanel({
       }
       form.reset();
       setDoneMessage(
-        `Created login for ${result.email ?? "that account"}. Assign them with “Franchise owner” below.`,
+        `Created login for ${result.email ?? "that account"}. Prefer adding roster rows on Players first next time; you can still assign them below.`,
       );
       router.refresh();
     } finally {
@@ -67,49 +69,54 @@ export function InviteOwnerPanel({
 
   return (
     <div className="rounded-xl border border-border/70 bg-card/40 p-6 backdrop-blur-md">
-      <h3 className="text-lg font-semibold tracking-tight">Create franchise owner login</h3>
+      <h3 className="text-lg font-semibold tracking-tight">Optional: owner login without a roster row</h3>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-        Makes an email + password they use on the normal login page. The address only has to look
-        like an email (it does not need a real inbox). Then assign them to a franchise below — no
-        Supabase dashboard steps.
+        Preferred flow is Players → add the person → Grant login → Teams → assign franchise.
+        Use this form only when you want a standalone franchise-owner login first.
       </p>
-      <form
-        className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-end"
-        onSubmit={(event) => void handleSubmit(event)}
-      >
-        <div className="space-y-2 sm:col-span-1">
-          <Label htmlFor="invite-email">Email</Label>
-          <Input
-            id="invite-email"
-            name="email"
-            type="email"
-            autoComplete="off"
-            required
-            placeholder="owner@example.com"
-          />
-        </div>
-        <div className="space-y-2 sm:col-span-1">
-          <Label htmlFor="invite-password">Temporary password</Label>
-          <Input
-            id="invite-password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            placeholder="Min 8 characters"
-          />
-        </div>
-        <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-          <Label htmlFor="invite-name">Display name (optional)</Label>
-          <Input id="invite-name" name="displayName" placeholder="Priya K." />
-        </div>
-        <div className="flex sm:col-span-2 lg:col-span-1">
-          <Button type="submit" disabled={isSubmitting} className="w-full lg:w-auto">
-            {isSubmitting ? "Creating…" : "Create owner"}
-          </Button>
-        </div>
-      </form>
+      {!canInviteOwners ? (
+        <p className="mt-4 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+          Franchise owner logins cannot be created while this tournament is sealed for drafting.
+        </p>
+      ) : (
+        <form
+          className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-end"
+          onSubmit={(event) => void handleSubmit(event)}
+        >
+          <div className="space-y-2 sm:col-span-1">
+            <Label htmlFor="invite-email">Email</Label>
+            <Input
+              id="invite-email"
+              name="email"
+              type="email"
+              autoComplete="off"
+              required
+              placeholder="owner@example.com"
+            />
+          </div>
+          <div className="space-y-2 sm:col-span-1">
+            <Label htmlFor="invite-password">Temporary password</Label>
+            <Input
+              id="invite-password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              placeholder="Min 8 characters"
+            />
+          </div>
+          <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+            <Label htmlFor="invite-name">Display name (optional)</Label>
+            <Input id="invite-name" name="displayName" placeholder="Priya K." />
+          </div>
+          <div className="flex sm:col-span-2 lg:col-span-1">
+            <Button type="submit" disabled={isSubmitting} className="w-full lg:w-auto">
+              {isSubmitting ? "Creating…" : "Create owner"}
+            </Button>
+          </div>
+        </form>
+      )}
       {doneMessage ? (
         <p className="mt-4 text-sm text-muted-foreground" role="status">
           {doneMessage}

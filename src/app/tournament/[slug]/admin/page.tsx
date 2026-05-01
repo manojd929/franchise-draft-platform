@@ -29,7 +29,7 @@ export default async function AdminControlRoomPage({ params }: PageProps) {
     <div className="space-y-4 sm:space-y-6">
       <header>
         <h2 className="text-xl font-semibold tracking-tight sm:text-2xl lg:text-3xl">
-          Organizer — run the auction
+          Organizer: run the auction
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
           Use <strong className="font-semibold text-foreground">Shuffle pick order</strong> before you start

@@ -82,7 +82,7 @@ export default async function RulesPage({ params }: PageProps) {
             <strong className="font-semibold text-foreground">amber notice under that group</strong>{" "}
             lists how many players need recategorizing or how many to add. Use{" "}
             <strong className="font-semibold text-foreground">Auto-set limits from roster</strong>{" "}
-            for floor(pool÷teams) defaults — longer explanations follow under the form.
+            for floor(pool÷teams) defaults. Longer explanations follow under the form.
           </p>
         </div>
         <SquadRulesAutoFillButton tournamentSlug={slug} />

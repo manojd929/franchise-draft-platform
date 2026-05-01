@@ -6,15 +6,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DeleteFranchiseOwnerLoginButton } from "@/features/tournaments/delete-franchise-owner-login-button";
 import { formatAssignablePersonLabel } from "@/lib/format-assignable-person-label";
 import type { AssignablePerson } from "@/types/assignable-person";
 
 interface FranchiseOwnersSummaryProps {
+  tournamentSlug: string;
+  invitingSupported: boolean;
+  canInviteOwners: boolean;
   assignablePeople: AssignablePerson[];
   teams: Array<{ id: string; name: string; ownerUserId: string | null }>;
 }
 
 export function FranchiseOwnersSummary({
+  tournamentSlug,
+  invitingSupported,
+  canInviteOwners,
   assignablePeople,
   teams,
 }: FranchiseOwnersSummaryProps) {
@@ -41,10 +48,10 @@ export function FranchiseOwnersSummary({
         Franchise owners (this league)
       </h3>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-        Franchise owner logins only — league admin accounts that run the auction never appear here.
-        You as commissioner are excluded too (use another login if you also draft). “Team” shows
-        which franchise each owner has now. Remove an owner from the Teams table when you need to
-        free their login for someone else.
+        Only franchise-owner accounts tied to this league appear below (role Owner or linked from a
+        roster row here). Commissioner logins never appear. Removing login clears assignments here,
+        drops roster links for those accounts in this league, and deletes Supabase credentials when
+        nothing else references them.
       </p>
       <div className="mt-4 overflow-x-auto rounded-lg border border-border/60 bg-background/40">
         <Table>
@@ -52,14 +59,17 @@ export function FranchiseOwnersSummary({
             <TableRow>
               <TableHead>Owner</TableHead>
               <TableHead>Team</TableHead>
+              <TableHead className="w-[1%] whitespace-nowrap text-right">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {assignablePeople.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={2} className="text-muted-foreground">
-                  No eligible franchise owners yet. Create an owner login above, then assign them
-                  when you add or edit a team.
+                <TableCell colSpan={3} className="text-muted-foreground">
+                  No eligible franchise owners yet. Prefer adding someone as a player first, grant a
+                  login from Players, then assign them from Teams.
                 </TableCell>
               </TableRow>
             ) : (
@@ -74,6 +84,15 @@ export function FranchiseOwnersSummary({
                       {franchiseNames?.length
                         ? franchiseNames.join(", ")
                         : "Not assigned yet"}
+                    </TableCell>
+                    <TableCell className="text-right align-middle">
+                      <DeleteFranchiseOwnerLoginButton
+                        tournamentSlug={tournamentSlug}
+                        ownerUserId={person.id}
+                        ownerLabel={formatAssignablePersonLabel(person)}
+                        invitingSupported={invitingSupported}
+                        canInviteOwners={canInviteOwners}
+                      />
                     </TableCell>
                   </TableRow>
                 );

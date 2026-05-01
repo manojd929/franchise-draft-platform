@@ -6,13 +6,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ROUTES } from "@/constants/app";
+import { sanitizeNextPath } from "@/lib/navigation/sanitize-next-path";
 import { syncProfileAction } from "@/features/tournaments/actions";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") ?? "/dashboard";
+  const nextPath = sanitizeNextPath(searchParams.get("next"), ROUTES.dashboard);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -59,7 +61,7 @@ export function LoginForm() {
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
           League organizers and franchise owners use the email and password the commissioner gave
           you. During the auction, franchise owners should open the{" "}
-          <span className="font-medium text-foreground">Owner</span> screen after signing in—the same
+          <span className="font-medium text-foreground">Owner</span> screen after signing in. The same
           login works every week.
         </p>
       </div>

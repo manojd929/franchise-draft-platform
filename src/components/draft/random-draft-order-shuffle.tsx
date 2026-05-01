@@ -122,7 +122,7 @@ export function RandomDraftOrderShuffle({
               Shuffling teams…
             </motion.p>
             <p className="max-w-md text-sm text-muted-foreground">
-              Hang on — building a new random pick order for the auction.
+              Hang on. Building a new random pick order for the auction.
             </p>
           </div>
 

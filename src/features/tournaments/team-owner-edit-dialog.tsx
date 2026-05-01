@@ -82,7 +82,7 @@ export function TeamOwnerEditDialog({
           <DialogTitle>Franchise owner · {team.name}</DialogTitle>
           <DialogDescription>
             Pick who logs in as this franchise during the auction. Their roster slot appears on the
-            Players page — change category or photo there, same as everyone else.
+            Players page: change category or photo there, same as everyone else.
           </DialogDescription>
         </DialogHeader>
         <div className="py-1">

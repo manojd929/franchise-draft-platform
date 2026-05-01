@@ -14,40 +14,41 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { updateTeamAction } from "@/features/tournaments/actions";
-import type { TeamEditSnapshot } from "@/features/tournaments/team-edit-dialog";
+import { deleteFranchiseOwnerAction } from "@/features/tournaments/actions";
 import { cn } from "@/lib/utils";
 
-interface RemoveTeamOwnerButtonProps {
+interface DeleteFranchiseOwnerLoginButtonProps {
   tournamentSlug: string;
-  team: TeamEditSnapshot;
-  className?: string;
+  ownerUserId: string;
+  ownerLabel: string;
+  invitingSupported: boolean;
+  canInviteOwners: boolean;
 }
 
-export function RemoveTeamOwnerButton({
+export function DeleteFranchiseOwnerLoginButton({
   tournamentSlug,
-  team,
-  className,
-}: RemoveTeamOwnerButtonProps) {
+  ownerUserId,
+  ownerLabel,
+  invitingSupported,
+  canInviteOwners,
+}: DeleteFranchiseOwnerLoginButtonProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const hasOwner = Boolean(team.ownerUserId?.trim());
+  const locked = !invitingSupported || !canInviteOwners;
+  const lockedTitle = !invitingSupported
+    ? "Add SUPABASE_SERVICE_ROLE_KEY to remove owner logins from authentication."
+    : "Owner logins cannot be changed after the draft configuration is sealed.";
 
-  async function confirmRemove(): Promise<void> {
+  async function confirmDelete(): Promise<void> {
     setError(null);
     setBusy(true);
     try {
-      const result = await updateTeamAction({
+      const result = await deleteFranchiseOwnerAction({
         tournamentSlug,
-        teamId: team.id,
-        name: team.name,
-        shortName: team.shortName ?? "",
-        logoUrl: team.logoUrl ?? "",
-        colorHex: team.colorHex ?? "",
-        ownerUserId: "",
+        ownerUserId,
       });
       if (!result.ok) {
         setError(result.error);
@@ -60,35 +61,35 @@ export function RemoveTeamOwnerButton({
     }
   }
 
-  if (!hasOwner) {
-    return null;
-  }
-
   return (
     <>
       <Button
         type="button"
         variant="outline"
+        size="sm"
+        title={locked ? lockedTitle : undefined}
+        disabled={locked}
         className={cn(
-          "h-8 min-h-8 w-full px-3 text-xs touch-manipulation border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto sm:min-w-[5.5rem] sm:px-3",
-          className,
+          "min-h-9 touch-manipulation border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive",
+          locked && "pointer-events-none opacity-50",
         )}
         onClick={() => {
+          if (locked) return;
           setError(null);
           setOpen(true);
         }}
       >
-        Remove owner
+        Remove login
       </Button>
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent className="sm:max-w-md" size="default">
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove franchise owner?</AlertDialogTitle>
+            <AlertDialogTitle>Remove franchise owner login?</AlertDialogTitle>
             <AlertDialogDescription className="text-left">
-              <span className="font-medium text-foreground">{team.name}</span> will have no owner
-              login until you assign someone again. Sync clears auto-created roster stubs when needed.
-              If they had player-first login only here and no other franchises rely on them, their
-              Supabase credentials are removed automatically.
+              Unassigns{" "}
+              <span className="font-medium text-foreground">{ownerLabel}</span> from every franchise
+              in this league, clears their roster links here, and deletes their Supabase login when
+              nothing else references it.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error ? (
@@ -107,10 +108,10 @@ export function RemoveTeamOwnerButton({
               disabled={busy}
               onClick={(event) => {
                 event.preventDefault();
-                void confirmRemove();
+                void confirmDelete();
               }}
             >
-              {busy ? "Removing…" : "Remove owner"}
+              {busy ? "Removing…" : "Remove login"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

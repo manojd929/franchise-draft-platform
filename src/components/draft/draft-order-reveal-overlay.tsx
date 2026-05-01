@@ -174,7 +174,7 @@ export function DraftOrderRevealOverlay({
               id="draft-order-reveal-desc"
               className="text-sm leading-relaxed text-muted-foreground sm:text-base"
             >
-              Order below was randomly set for owners — like a quick lottery before the auction.
+              Order below was randomly set for owners, like a quick lottery before the auction.
               Your snake rounds still reverse each pass.
             </p>
           </div>

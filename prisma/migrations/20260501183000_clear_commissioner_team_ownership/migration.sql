@@ -1,4 +1,4 @@
--- Commissioner runs Admin only — cannot hold franchise ownership on their own tournament.
+-- Commissioner runs Admin only; cannot hold franchise ownership on their own tournament.
 UPDATE "Team" AS t
 SET "ownerUserId" = NULL
 FROM "Tournament" AS tor

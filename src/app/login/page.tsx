@@ -1,12 +1,26 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LoginForm } from "@/features/auth/login-form";
 import { ROUTES } from "@/constants/app";
+import { getSessionUser } from "@/lib/auth/session";
+import { sanitizeNextPath } from "@/lib/navigation/sanitize-next-path";
 
-export default function LoginPage() {
+export const dynamic = "force-dynamic";
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const sessionUser = await getSessionUser();
+  if (sessionUser) {
+    const params = await searchParams;
+    redirect(sanitizeNextPath(params.next, ROUTES.dashboard));
+  }
+
   return (
     <div className="relative flex min-h-screen flex-col bg-background px-6 py-16 text-foreground">
       <div
@@ -19,10 +33,6 @@ export default function LoginPage() {
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <ThemeToggle />
-          <SignOutButton className="min-w-[8rem]" variant="outline" />
-          <Link href={ROUTES.dashboard} className="text-muted-foreground hover:text-foreground">
-            Dashboard →
-          </Link>
         </div>
       </div>
       <Suspense
