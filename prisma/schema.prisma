@@ -1,0 +1,239 @@
+// Franchise Draft Platform — Prisma schema (PostgreSQL / Supabase)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  OWNER
+  VIEWER
+}
+
+enum PlayerCategory {
+  MEN_BEGINNER
+  MEN_INTERMEDIATE
+  MEN_ADVANCED
+  WOMEN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum DraftPhase {
+  SETUP
+  READY
+  LIVE
+  PAUSED
+  FROZEN
+  LOCKED
+  COMPLETED
+}
+
+enum PickStatus {
+  PENDING_CONFIRMATION
+  CONFIRMED
+}
+
+enum DraftLogAction {
+  DRAFT_STARTED
+  DRAFT_PAUSED
+  DRAFT_RESUMED
+  DRAFT_ENDED
+  DRAFT_FROZEN
+  DRAFT_UNLOCKED
+  DRAFT_LOCKED
+  TURN_ADVANCED
+  TURN_REVERTED
+  TURN_SKIPPED
+  ORDER_RANDOMIZED
+  PICK_REQUESTED
+  PICK_CONFIRMED
+  PICK_UNDONE
+  PICK_REMOVED
+  PLAYER_ASSIGNED
+  PLAYER_UNAVAILABLE
+  PLAYER_LOCKED
+  SYNC_FORCED
+  OVERRIDE_VALIDATION
+  ERROR
+}
+
+model UserProfile {
+  id           String    @id @db.Uuid
+  email        String    @unique
+  displayName  String?
+  role         UserRole  @default(VIEWER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  tournamentsCreated Tournament[] @relation("TournamentCreator")
+  teamsOwned         Team[]       @relation("TeamOwner")
+  draftLogs          DraftLog[]
+  picksConfirmed     Pick[]       @relation("PickConfirmer")
+  ownerStubPlayers   Player[]     @relation("OwnerPlayerStub")
+}
+
+model Tournament {
+  id                     String      @id @default(uuid()) @db.Uuid
+  name                   String
+  slug                   String      @unique
+  description            String?
+  logoUrl                String?
+  colorHex               String?
+  createdById            String      @db.Uuid
+  draftPhase             DraftPhase  @default(SETUP)
+  picksPerTeam           Int         @default(10)
+  currentSlotIndex       Int         @default(0)
+  draftOrderLocked       Boolean     @default(false)
+  pendingPickPlayerId    String?     @unique @db.Uuid
+  pendingPickTeamId      String?     @unique @db.Uuid
+  pendingIdempotencyKey  String?
+  overrideValidation     Boolean     @default(false)
+  pickTimerSeconds       Int?
+  draftStartedAt         DateTime?
+  draftEndedAt           DateTime?
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+  deletedAt              DateTime?
+
+  creator       UserProfile       @relation("TournamentCreator", fields: [createdById], references: [id])
+  teams         Team[]
+  players       Player[]
+  squadRules    SquadRule[]
+  draftSlots    DraftOrderSlot[]
+  picks         Pick[]
+  draftLogs     DraftLog[]
+  pendingPlayer Player?           @relation("PendingPlayer", fields: [pendingPickPlayerId], references: [id])
+  pendingTeam   Team?             @relation("PendingTeam", fields: [pendingPickTeamId], references: [id])
+
+  @@index([createdById])
+  @@index([draftPhase])
+}
+
+model Team {
+  id             String    @id @default(uuid()) @db.Uuid
+  tournamentId   String    @db.Uuid
+  name           String
+  shortName      String?
+  logoUrl        String?
+  colorHex       String?
+  ownerUserId    String?   @db.Uuid
+  displayOrder   Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  tournament      Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  owner           UserProfile?     @relation("TeamOwner", fields: [ownerUserId], references: [id])
+  draftSlots           DraftOrderSlot[]
+  picks                Pick[]
+  pendingPickFor       Tournament? @relation("PendingTeam")
+
+  @@index([tournamentId])
+  @@index([ownerUserId])
+}
+
+model Player {
+  id                  String          @id @default(uuid()) @db.Uuid
+  tournamentId      String          @db.Uuid
+  name                String
+  photoUrl            String?
+  category            PlayerCategory
+  gender              Gender
+  notes               String?
+  isUnavailable       Boolean         @default(false)
+  isLocked            Boolean         @default(false)
+  linkedOwnerUserId   String?         @db.Uuid
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  deletedAt           DateTime?
+
+  tournament           Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  linkedOwner          UserProfile? @relation("OwnerPlayerStub", fields: [linkedOwnerUserId], references: [id])
+  picks                Pick[]
+  pendingPickFor       Tournament?  @relation("PendingPlayer")
+
+  @@unique([tournamentId, linkedOwnerUserId])
+  @@index([tournamentId])
+  @@index([category])
+  @@index([name])
+}
+
+model SquadRule {
+  id           String         @id @default(uuid()) @db.Uuid
+  tournamentId String         @db.Uuid
+  category     PlayerCategory
+  maxCount     Int
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, category])
+  @@index([tournamentId])
+}
+
+model DraftOrderSlot {
+  id           String   @id @default(uuid()) @db.Uuid
+  tournamentId String   @db.Uuid
+  slotIndex    Int
+  teamId       String   @db.Uuid
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, slotIndex])
+  @@index([tournamentId])
+  @@index([teamId])
+}
+
+model Pick {
+  id               String       @id @default(uuid()) @db.Uuid
+  tournamentId     String       @db.Uuid
+  playerId         String       @db.Uuid
+  teamId           String       @db.Uuid
+  slotIndex        Int
+  status           PickStatus   @default(CONFIRMED)
+  idempotencyKey   String?      @unique
+  confirmedByUserId String?     @db.Uuid
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  confirmedBy UserProfile? @relation("PickConfirmer", fields: [confirmedByUserId], references: [id])
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player     Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, playerId])
+  @@index([tournamentId])
+  @@index([teamId])
+  @@index([slotIndex])
+}
+
+model DraftLog {
+  id            String         @id @default(uuid()) @db.Uuid
+  tournamentId  String         @db.Uuid
+  action        DraftLogAction
+  message       String?
+  payload       Json?
+  actorUserId   String?        @db.Uuid
+  createdAt     DateTime       @default(now())
+
+  tournament Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  actor      UserProfile? @relation(fields: [actorUserId], references: [id])
+
+  @@index([tournamentId, createdAt])
+}
