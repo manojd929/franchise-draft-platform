@@ -10,7 +10,9 @@ import {
 } from "@/components/ui/table";
 import { FranchiseOwnersSummary } from "@/features/tournaments/franchise-owners-summary";
 import { InviteOwnerPanel } from "@/features/tournaments/invite-owner-panel";
+import { RemoveTeamOwnerButton } from "@/features/tournaments/remove-team-owner-button";
 import { TeamEditDialog } from "@/features/tournaments/team-edit-dialog";
+import { TeamOwnerEditDialog } from "@/features/tournaments/team-owner-edit-dialog";
 import { TeamsQuickAdd } from "@/features/tournaments/teams-quick-add";
 import { buildFranchiseOwnerAssigneeList } from "@/lib/data/franchise-owner-assignees";
 import { getSessionUser } from "@/lib/auth/session";
@@ -89,7 +91,7 @@ export default async function TeamsPage({ params }: PageProps) {
               <TableHead>Team</TableHead>
               <TableHead>Short name</TableHead>
               <TableHead>Owner</TableHead>
-              <TableHead className="w-[100px] text-right">Actions</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -104,23 +106,53 @@ export default async function TeamsPage({ params }: PageProps) {
                 <TableRow key={team.id}>
                   <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell>{team.shortName ?? "—"}</TableCell>
-                  <TableCell className="max-w-[200px] truncate text-sm">
-                    {team.owner ? (team.owner.displayName ?? team.owner.email) : "—"}
+                  <TableCell>
+                    <div className="flex min-w-0 max-w-[min(22rem,85vw)] flex-col gap-2 sm:max-w-none">
+                      <span className="min-w-0 truncate text-sm">
+                        {team.owner ? (team.owner.displayName ?? team.owner.email) : "—"}
+                      </span>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                        <TeamOwnerEditDialog
+                          tournamentSlug={slug}
+                          assignablePeople={assignablePeople}
+                          team={{
+                            id: team.id,
+                            name: team.name,
+                            shortName: team.shortName,
+                            logoUrl: team.logoUrl,
+                            colorHex: team.colorHex,
+                            ownerUserId: team.ownerUserId,
+                          }}
+                        />
+                        <RemoveTeamOwnerButton
+                          tournamentSlug={slug}
+                          team={{
+                            id: team.id,
+                            name: team.name,
+                            shortName: team.shortName,
+                            logoUrl: team.logoUrl,
+                            colorHex: team.colorHex,
+                            ownerUserId: team.ownerUserId,
+                          }}
+                        />
+                      </div>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <TeamEditDialog
-                      tournamentSlug={slug}
-                      assignablePeople={assignablePeople}
-                      uploadsEnabled={uploadsEnabled}
-                      team={{
-                        id: team.id,
-                        name: team.name,
-                        shortName: team.shortName,
-                        logoUrl: team.logoUrl,
-                        colorHex: team.colorHex,
-                        ownerUserId: team.ownerUserId,
-                      }}
-                    />
+                  <TableCell className="text-right align-top">
+                    <div className="flex justify-end pt-0 sm:pt-1">
+                      <TeamEditDialog
+                        tournamentSlug={slug}
+                        uploadsEnabled={uploadsEnabled}
+                        team={{
+                          id: team.id,
+                          name: team.name,
+                          shortName: team.shortName,
+                          logoUrl: team.logoUrl,
+                          colorHex: team.colorHex,
+                          ownerUserId: team.ownerUserId,
+                        }}
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

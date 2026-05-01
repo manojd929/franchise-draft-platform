@@ -232,7 +232,7 @@ export function DraftRoomClient({
       <section className="min-w-0 flex-1 space-y-3 sm:space-y-4">
         <div className="flex flex-col gap-3 rounded-xl border border-border/80 bg-card/20 p-3 backdrop-blur-md sm:p-4 md:flex-row md:items-end md:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-2 md:max-w-md">
-            <label className="text-xs font-medium text-muted-foreground" htmlFor="player-search">
+            <label className="text-sm font-medium text-muted-foreground" htmlFor="player-search">
               Find by name
             </label>
             <Input
@@ -298,7 +298,7 @@ export function DraftRoomClient({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filteredPlayers.map((player) => {
             const team = player.assignedTeamId
               ? teamsById[player.assignedTeamId]

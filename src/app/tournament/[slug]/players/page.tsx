@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DeletePlayerButton } from "@/features/tournaments/delete-player-button";
 import { PlayerEditDialog } from "@/features/tournaments/player-edit-dialog";
 import { PlayersCategoryDashboard } from "@/features/tournaments/players-category-dashboard";
 import { PlayersQuickAdd } from "@/features/tournaments/players-quick-add";
@@ -55,8 +56,8 @@ export default async function PlayersPage({ params }: PageProps) {
         <h2 className="text-xl font-semibold tracking-tight sm:text-2xl lg:text-3xl">Players</h2>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
           Add each person&apos;s name, group, and gender. Upload a photo or paste an image link —
-          photos show on the auction board. When you assign a team owner, we add them here as a
-          player too — you can edit their group or photo.
+          photos show on the auction board. Franchise owners appear here too once assigned on Teams —
+          edit their category or photo like anyone else.
         </p>
       </header>
 
@@ -99,18 +100,31 @@ export default async function PlayersPage({ params }: PageProps) {
                       .join(" · ") || "—"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <PlayerEditDialog
-                      tournamentSlug={slug}
-                      uploadsEnabled={uploadsEnabled}
-                      player={{
-                        id: player.id,
-                        name: player.name,
-                        category: player.category,
-                        gender: player.gender,
-                        photoUrl: player.photoUrl,
-                        notes: player.notes,
-                      }}
-                    />
+                    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+                      <PlayerEditDialog
+                        tournamentSlug={slug}
+                        uploadsEnabled={uploadsEnabled}
+                        player={{
+                          id: player.id,
+                          name: player.name,
+                          category: player.category,
+                          gender: player.gender,
+                          photoUrl: player.photoUrl,
+                          notes: player.notes,
+                        }}
+                      />
+                      <DeletePlayerButton
+                        tournamentSlug={slug}
+                        playerId={player.id}
+                        playerName={player.name}
+                        disabled={player.linkedOwnerUserId !== null}
+                        disabledReason={
+                          player.linkedOwnerUserId !== null
+                            ? "Remove franchise owner on Teams before deleting this roster row."
+                            : undefined
+                        }
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

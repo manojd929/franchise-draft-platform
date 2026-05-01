@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -22,7 +21,7 @@ export function LoginForm() {
   const handleSubmit = async () => {
     setMessage(null);
     if (!isSupabaseConfigured()) {
-      setMessage("Configure Supabase environment variables to enable authentication.");
+      setMessage("Sign-in is not set up on this site yet. Ask your league organizer.");
       return;
     }
 
@@ -47,7 +46,7 @@ export function LoginForm() {
       /* Full navigation avoids stale client state after auth cookies are set (router.push alone can leave /login visible). */
       window.location.assign(nextPath);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Auth failed.");
+      setMessage(err instanceof Error ? err.message : "Could not sign in. Try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -56,9 +55,12 @@ export function LoginForm() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-6 rounded-2xl border border-border/70 bg-card/85 p-8 text-card-foreground shadow-lg backdrop-blur-xl">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Operator access</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Supabase email & password. SSO flows can extend this surface without restructuring routes.
+        <h1 className="text-3xl font-semibold tracking-tight">Sign in</h1>
+        <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+          League organizers and franchise owners use the email and password the commissioner gave
+          you. During the auction, franchise owners should open the{" "}
+          <span className="font-medium text-foreground">Owner</span> screen after signing in—the same
+          login works every week.
         </p>
       </div>
       <div className="space-y-4">
@@ -88,14 +90,18 @@ export function LoginForm() {
           {message}
         </p>
       ) : null}
-      <Button type="button" disabled={isSubmitting} className="w-full" onClick={() => void handleSubmit()}>
+      <Button
+        type="button"
+        disabled={isSubmitting}
+        className="min-h-12 w-full text-base"
+        onClick={() => void handleSubmit()}
+      >
         {isSubmitting ? "Signing in…" : "Sign in"}
       </Button>
-      <p className="text-center text-xs text-muted-foreground">
-        Need an account?{" "}
-        <Link href="/login?view=signup" className="text-primary underline-offset-4 hover:underline">
-          Contact your league commissioner
-        </Link>
+      <p className="text-center text-sm leading-relaxed text-muted-foreground">
+        New franchise owner? Your commissioner creates your login from{" "}
+        <span className="font-medium text-foreground">Teams</span>. Forgot password? Ask them to reset
+        or re-invite you.
       </p>
     </div>
   );

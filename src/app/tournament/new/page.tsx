@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CreateTournamentForm } from "@/features/tournaments/create-tournament-form";
 import { ROUTES } from "@/constants/app";
@@ -11,7 +12,10 @@ export default function NewTournamentPage() {
         <Link href={ROUTES.dashboard} className="text-sm text-muted-foreground hover:text-foreground">
           ← Dashboard
         </Link>
-        <ThemeToggle />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <SignOutButton className="min-w-[8rem]" variant="outline" />
+          <ThemeToggle />
+        </div>
       </div>
       <h1 className="mt-8 text-4xl font-semibold tracking-tight">Launch a tournament</h1>
       <p className="mt-3 max-w-2xl text-muted-foreground">

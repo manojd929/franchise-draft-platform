@@ -17,10 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateTeamAction } from "@/features/tournaments/actions";
 import { ImageUploadOrUrlField } from "@/features/uploads/image-upload-or-url-field";
-import {
-  OwnerPicker,
-  type AssignablePerson,
-} from "@/features/tournaments/owner-picker";
 
 export interface TeamEditSnapshot {
   id: string;
@@ -34,14 +30,12 @@ export interface TeamEditSnapshot {
 interface TeamEditDialogProps {
   tournamentSlug: string;
   team: TeamEditSnapshot;
-  assignablePeople: AssignablePerson[];
   uploadsEnabled: boolean;
 }
 
 export function TeamEditDialog({
   tournamentSlug,
   team,
-  assignablePeople,
   uploadsEnabled,
 }: TeamEditDialogProps) {
   const router = useRouter();
@@ -50,7 +44,6 @@ export function TeamEditDialog({
   const [shortName, setShortName] = useState(team.shortName ?? "");
   const [logoUrl, setLogoUrl] = useState(team.logoUrl ?? "");
   const [colorHex, setColorHex] = useState(team.colorHex ?? "");
-  const [ownerUserId, setOwnerUserId] = useState(team.ownerUserId ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,7 +52,6 @@ export function TeamEditDialog({
     setShortName(team.shortName ?? "");
     setLogoUrl(team.logoUrl ?? "");
     setColorHex(team.colorHex ?? "");
-    setOwnerUserId(team.ownerUserId ?? "");
     setError(null);
     setOpen(true);
   }
@@ -75,7 +67,7 @@ export function TeamEditDialog({
         shortName: shortName.trim() || undefined,
         logoUrl: logoUrl.trim() || undefined,
         colorHex: colorHex.trim() || undefined,
-        ownerUserId,
+        ownerUserId: team.ownerUserId ?? "",
       });
       if (!result.ok) {
         setError(result.error);
@@ -90,14 +82,21 @@ export function TeamEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button variant="outline" size="sm" type="button" onClick={openDialog}>
-        Edit
+      <Button
+        variant="outline"
+        size="sm"
+        type="button"
+        className="min-h-11 touch-manipulation sm:min-h-9"
+        onClick={openDialog}
+      >
+        Franchise
       </Button>
       <DialogContent className="sm:max-w-lg" showCloseButton>
         <DialogHeader>
           <DialogTitle>Edit franchise</DialogTitle>
           <DialogDescription>
-            Name, ticker, broadcast extras, and who owns this franchise on draft day.
+            Name, ticker, broadcast branding — assign or change the owner from the Owner column on
+            the table.
           </DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[min(70vh,520px)] gap-3 overflow-y-auto py-1 pr-1">
@@ -122,13 +121,6 @@ export function TeamEditDialog({
               placeholder="CCR"
             />
           </div>
-          <OwnerPicker
-            id={`team-owner-${team.id}`}
-            label="Franchise owner"
-            value={ownerUserId}
-            onChange={setOwnerUserId}
-            people={assignablePeople}
-          />
           <ImageUploadOrUrlField
             tournamentSlug={tournamentSlug}
             purpose="team-logo"

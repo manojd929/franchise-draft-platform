@@ -116,6 +116,19 @@ export const updatePlayerSchema = z.object({
 
 export type UpdatePlayerInput = z.infer<typeof updatePlayerSchema>;
 
+export const deleteTournamentSchema = z.object({
+  tournamentSlug: z.string().min(1),
+});
+
+export type DeleteTournamentInput = z.infer<typeof deleteTournamentSchema>;
+
+export const deletePlayerSchema = z.object({
+  tournamentSlug: z.string().min(1),
+  playerId: z.string().uuid(),
+});
+
+export type DeletePlayerInput = z.infer<typeof deletePlayerSchema>;
+
 export const squadRulesSchema = z.object({
   tournamentSlug: z.string().min(1),
   rules: z

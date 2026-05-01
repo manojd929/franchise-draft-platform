@@ -127,6 +127,8 @@
   }
   html {
     @apply font-sans;
+    /* ~12.5% larger base than browser default so labels and body copy read easier on phones and TVs */
+    font-size: 112.5%;
   }
 
   /* Chrome/Safari autofill otherwise paints text the same as background on dark pages */

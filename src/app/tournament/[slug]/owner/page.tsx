@@ -25,11 +25,12 @@ export default async function OwnerViewPage({ params }: PageProps) {
   return (
     <div className="space-y-4 sm:space-y-6">
       <header>
-        <h2 className="text-xl font-semibold tracking-tight sm:text-2xl lg:text-3xl">
+        <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
           Your turn on the phone
         </h2>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-          Same photo board as the room. When your team is highlighted, choose a player and wait for the
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          Sign in with the email and password your commissioner gave you, then stay on this screen
+          during the auction. When your franchise is highlighted, tap a player and wait for the
           organizer to confirm.
         </p>
       </header>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 import {
@@ -72,6 +73,7 @@ export function DashboardThemeShell({
         <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <ThemeToggle />
+            <SignOutButton className="flex-1 sm:flex-none sm:min-w-[8rem]" variant="outline" />
             <div className="text-xs text-muted-foreground">
               <span className="font-medium text-foreground">Floor theme</span>
               <span className="hidden sm:inline"> — </span>
@@ -94,7 +96,7 @@ export function DashboardThemeShell({
                 disabled={!hydrated}
                 onClick={() => persist(opt.id)}
                 className={cn(
-                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  "min-h-10 touch-manipulation rounded-full border px-3 py-2 text-xs font-medium transition-colors",
                   theme === opt.id
                     ? "border-primary bg-primary text-primary-foreground shadow-sm"
                     : "border-border/70 bg-background/70 text-foreground hover:bg-accent hover:text-accent-foreground",

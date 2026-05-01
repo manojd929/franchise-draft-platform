@@ -25,13 +25,13 @@ export default async function DraftFloorPage({ params }: PageProps) {
   return (
     <div className="space-y-4 sm:space-y-6">
       <header>
-        <h2 className="text-xl font-semibold tracking-tight sm:text-2xl lg:text-3xl">
+        <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
           Auction board
         </h2>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-          Photos for everyone still free to pick. Choose your group and women or men. When it is your
-          team&apos;s turn, tap <strong className="font-semibold text-foreground">Pick this player</strong>.
-          The organizer confirms on the Admin screen.
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          Filter by group or sort the list. When it is your team&apos;s turn, tap{" "}
+          <span className="font-medium text-foreground">Pick this player</span>. The organizer
+          confirms each choice on the Admin screen.
         </p>
       </header>
       <DraftRoomClient

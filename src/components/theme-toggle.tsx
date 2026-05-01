@@ -24,7 +24,11 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className={cn(buttonVariants({ variant: "outline", size: "icon" }), className)}
+        className={cn(
+          buttonVariants({ variant: "outline", size: "icon" }),
+          "min-h-11 min-w-11 touch-manipulation",
+          className,
+        )}
         aria-label="Color theme"
         aria-haspopup="menu"
       >

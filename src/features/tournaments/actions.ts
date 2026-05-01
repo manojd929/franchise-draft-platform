@@ -12,6 +12,8 @@ import {
   createTournament,
   reconcileSquadRulesForTournament,
   saveSquadRules,
+  softDeletePlayer,
+  softDeleteTournament,
   TournamentServiceError,
   updatePlayer,
   updateTeam,
@@ -22,6 +24,8 @@ import {
   createPlayerSchema,
   createTeamSchema,
   createTournamentSchema,
+  deletePlayerSchema,
+  deleteTournamentSchema,
   draftActionSlugSchema,
   squadRulesSchema,
   updatePlayerSchema,
@@ -113,6 +117,44 @@ export async function updateTeamAction(input: unknown): Promise<TournamentAction
     const slug = parsed.data.tournamentSlug;
     revalidatePath(`/tournament/${slug}`, "layout");
     revalidatePath(`/tournament/${slug}/teams`);
+    return { ok: true, slug };
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return { ok: false, error: "Unauthorized" };
+    }
+    return handle(e);
+  }
+}
+
+export async function deleteTournamentAction(
+  input: unknown,
+): Promise<TournamentActionResult> {
+  try {
+    const parsed = deleteTournamentSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, error: "Invalid tournament." };
+    const user = await requireSessionUser();
+    await softDeleteTournament(user.id, parsed.data.tournamentSlug);
+    revalidatePath("/dashboard");
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return { ok: false, error: "Unauthorized" };
+    }
+    return handle(e);
+  }
+}
+
+export async function deletePlayerAction(input: unknown): Promise<TournamentActionResult> {
+  try {
+    const parsed = deletePlayerSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, error: "Invalid player." };
+    const user = await requireSessionUser();
+    await softDeletePlayer(user.id, parsed.data);
+    const slug = parsed.data.tournamentSlug;
+    revalidatePath(`/tournament/${slug}`, "layout");
+    revalidatePath(`/tournament/${slug}/players`);
+    revalidatePath(`/tournament/${slug}/teams`);
+    revalidatePath(`/tournament/${slug}/rules`);
     return { ok: true, slug };
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {

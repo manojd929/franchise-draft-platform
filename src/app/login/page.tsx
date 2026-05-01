@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LoginForm } from "@/features/auth/login-form";
 import { ROUTES } from "@/constants/app";
@@ -16,8 +17,9 @@ export default function LoginPage() {
         <Link href={ROUTES.home} className="text-muted-foreground hover:text-foreground">
           ← Back to landing
         </Link>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <ThemeToggle />
+          <SignOutButton className="min-w-[8rem]" variant="outline" />
           <Link href={ROUTES.dashboard} className="text-muted-foreground hover:text-foreground">
             Dashboard →
           </Link>
@@ -32,6 +34,12 @@ export default function LoginPage() {
       >
         <LoginForm />
       </Suspense>
+      <p className="mx-auto mt-10 max-w-lg px-2 text-center text-sm leading-relaxed text-muted-foreground sm:text-base">
+        First time at auction time? Ask your organizer for this league&apos;s sign-in link (it opens
+        this page, then sends you to the right screen after you enter email and password). Franchise
+        owners usually bookmark{" "}
+        <span className="font-medium text-foreground">Owner</span> in the tournament menu. Players on the roster only need an account if they were invited as an owner.
+      </p>
     </div>
   );
 }

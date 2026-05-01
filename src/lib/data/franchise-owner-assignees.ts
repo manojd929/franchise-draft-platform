@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * People eligible to be franchise owners for this tournament only:
- * - Excludes the tournament commissioner (they run Admin — never selectable).
+ * - Excludes the tournament commissioner entirely (Admin runs separately — use another login).
  * - Excludes anyone already owning a team in another tournament,
  *   unless they're already an owner in THIS tournament (so edits/reassignment keep labels).
  * - Re-attaches profiles for current-team owners not covered above (odd legacy rows).
@@ -36,8 +36,7 @@ export async function buildFranchiseOwnerAssigneeList(params: {
   });
 
   const assignable = candidates.filter((person) => {
-    const isCommissioner = person.id === params.commissionerUserId;
-    if (isCommissioner && !currentOwners.has(person.id)) {
+    if (person.id === params.commissionerUserId) {
       return false;
     }
     if (busyElsewhere.has(person.id) && !currentOwners.has(person.id)) {
@@ -49,7 +48,10 @@ export async function buildFranchiseOwnerAssigneeList(params: {
   const assignableIds = new Set(assignable.map((person) => person.id));
 
   const orphanIds = params.existingTeamOwnerIds.filter(
-    (id) => id.trim() !== "" && !assignableIds.has(id),
+    (id) =>
+      id.trim() !== "" &&
+      id !== params.commissionerUserId &&
+      !assignableIds.has(id),
   );
 
   const orphans =

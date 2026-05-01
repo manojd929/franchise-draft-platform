@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ROUTES } from "@/constants/app";
 import { getTournamentBySlug } from "@/lib/data/tournament-access";
@@ -67,8 +68,11 @@ export default async function TournamentLayout({
                 </div>
               </div>
             </div>
-            <div className="-mx-1 flex flex-col gap-3 sm:mx-0 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
-              <ThemeToggle className="shrink-0 sm:order-last" />
+            <div className="-mx-1 flex flex-col gap-3 sm:mx-0 lg:max-w-[min(100%,42rem)] lg:flex-1">
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+                <SignOutButton className="flex-1 sm:flex-none sm:min-w-[8rem]" variant="outline" />
+                <ThemeToggle />
+              </div>
               <nav
                 aria-label="Tournament sections"
                 className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden"
@@ -77,7 +81,7 @@ export default async function TournamentLayout({
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="shrink-0 rounded-full border border-border/70 px-3 py-2 text-xs font-medium text-muted-foreground transition hover:border-primary hover:text-foreground sm:py-1.5"
+                    className="inline-flex min-h-11 shrink-0 touch-manipulation items-center rounded-full border border-border/70 px-3 py-2 text-xs font-medium text-muted-foreground transition hover:border-primary hover:text-foreground sm:min-h-9 sm:py-1.5"
                   >
                     {link.label}
                   </Link>

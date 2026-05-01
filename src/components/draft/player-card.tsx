@@ -17,6 +17,9 @@ interface PlayerCardProps {
   nominateDisabled?: boolean;
 }
 
+const badgeWrap =
+  "h-auto min-h-7 max-w-full whitespace-normal px-2.5 py-1 text-xs leading-snug sm:text-sm";
+
 export function PlayerCard({
   player,
   team,
@@ -40,9 +43,9 @@ export function PlayerCard({
       <Card
         data-state={picked ? "picked" : pending ? "pending" : "available"}
         className={cn(
-          "relative flex h-full flex-col overflow-hidden border bg-card/80 p-2 shadow-sm backdrop-blur-sm transition-all duration-300 sm:p-3",
+          "relative flex h-full flex-col overflow-hidden border bg-card/80 p-3 shadow-sm backdrop-blur-sm transition-all duration-300 sm:p-4",
           picked &&
-            "pointer-events-none scale-[0.98] opacity-60 grayscale border-muted",
+            "pointer-events-none scale-[0.99] opacity-65 grayscale border-muted",
           pending &&
             "border-amber-400/70 ring-2 ring-amber-400/40 shadow-[0_0_40px_-12px_rgba(251,191,36,0.55)]",
           !picked &&
@@ -53,67 +56,74 @@ export function PlayerCard({
       >
         {(picked || pending) && (
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/85 via-background/20 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/85 via-background/25 to-transparent"
             aria-hidden
           />
         )}
-        <div className="relative flex flex-1 flex-col gap-2">
-          <div className="flex gap-3">
-            <div className="relative size-14 shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border sm:size-16">
-              {player.photoUrl ? (
-                <Image
-                  src={player.photoUrl}
-                  alt=""
-                  fill
-                  sizes="(max-width:640px) 56px, 64px"
-                  unoptimized
-                  className="object-cover"
-                />
-              ) : (
-                <div
-                  className="flex h-full w-full items-center justify-center text-lg font-semibold text-muted-foreground"
-                  aria-hidden
-                >
-                  {player.name.slice(0, 1).toUpperCase()}
-                </div>
-              )}
-            </div>
-            <div className="min-w-0 flex-1 space-y-1">
-              <p className="truncate font-semibold tracking-tight">{player.name}</p>
-              <div className="flex flex-wrap gap-1">
-                <Badge variant="secondary" className="text-[10px] uppercase">
-                  {PLAYER_CATEGORY_LABEL[player.category]}
-                </Badge>
-                <Badge variant="outline" className="text-[10px] uppercase">
-                  {GENDER_LABEL[player.gender]}
-                </Badge>
-                {player.isUnavailable && (
-                  <Badge variant="destructive" className="text-[10px]">
-                    Not here
-                  </Badge>
-                )}
-                {player.isLocked && (
-                  <Badge variant="outline" className="text-[10px]">
-                    Locked
-                  </Badge>
-                )}
+        <div className="relative flex flex-1 flex-col gap-3">
+          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border">
+            {player.photoUrl ? (
+              <Image
+                src={player.photoUrl}
+                alt={player.name}
+                fill
+                sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
+                unoptimized
+                className="object-contain object-center"
+              />
+            ) : (
+              <div
+                className="flex h-full w-full items-center justify-center text-4xl font-semibold text-muted-foreground sm:text-5xl"
+                aria-hidden
+              >
+                {player.name.slice(0, 1).toUpperCase()}
               </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <p className="break-words text-center text-base font-semibold leading-snug tracking-tight sm:text-lg">
+              {player.name}
+            </p>
+            <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
+              <Badge variant="secondary" className={cn(badgeWrap, "text-center")}>
+                {PLAYER_CATEGORY_LABEL[player.category]}
+              </Badge>
+              <Badge variant="outline" className={cn(badgeWrap, "text-center")}>
+                {GENDER_LABEL[player.gender]}
+              </Badge>
+              {player.isUnavailable ? (
+                <Badge variant="destructive" className={cn(badgeWrap, "text-center")}>
+                  Not here
+                </Badge>
+              ) : null}
+              {player.isLocked ? (
+                <Badge variant="outline" className={cn(badgeWrap, "text-center")}>
+                  Locked
+                </Badge>
+              ) : null}
             </div>
           </div>
+
           {player.notes ? (
-            <p className="line-clamp-2 text-xs text-muted-foreground">{player.notes}</p>
+            <p className="break-words text-center text-sm leading-relaxed text-muted-foreground sm:text-base">
+              {player.notes}
+            </p>
           ) : null}
+
           {picked && team ? (
-            <div className="mt-auto flex items-center justify-between gap-2 rounded-lg bg-muted/60 px-2 py-2">
-              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                Taken
+            <div className="mt-auto flex flex-col gap-1 rounded-lg bg-muted/70 px-3 py-3 text-center sm:text-left">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
+                Taken by
               </span>
-              <span className="truncate text-sm font-semibold">{team.name}</span>
+              <span className="break-words text-base font-semibold leading-snug sm:text-lg">
+                {team.name}
+              </span>
             </div>
           ) : null}
           {pending && team ? (
-            <div className="mt-auto rounded-lg border border-amber-400/40 bg-amber-500/10 px-2 py-2 text-xs font-medium text-amber-950 dark:text-amber-100">
-              Waiting for admin · {team.shortName ?? team.name}
+            <div className="mt-auto rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-3 text-center text-sm font-medium leading-snug text-amber-950 sm:text-base dark:text-amber-100">
+              Waiting for organizer · {team.shortName ?? team.name}
             </div>
           ) : null}
           {onNominate && !picked ? (
@@ -122,7 +132,7 @@ export function PlayerCard({
               disabled={nominateDisabled}
               onClick={onNominate}
               className={cn(
-                "mt-auto min-h-11 rounded-lg bg-primary px-3 py-2.5 text-center text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs",
+                "mt-auto min-h-12 rounded-lg bg-primary px-4 py-3 text-center text-base font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-14 sm:text-lg",
               )}
             >
               Pick this player

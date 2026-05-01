@@ -41,8 +41,9 @@ export function FranchiseOwnersSummary({
         Franchise owners (this league)
       </h3>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-        Everyone you can assign to a team here. “Team” shows which franchise they currently own, if
-        any.
+        Everyone you can assign to a team here (not including you as commissioner — use another
+        login if you also draft). “Team” shows which franchise they currently own, if any. Remove an
+        owner from the Teams table when you need to free their login for someone else.
       </p>
       <div className="mt-4 overflow-x-auto rounded-lg border border-border/60 bg-background/40">
         <Table>

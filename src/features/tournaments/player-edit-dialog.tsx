@@ -88,7 +88,13 @@ export function PlayerEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button variant="outline" size="sm" type="button" onClick={openDialog}>
+      <Button
+        variant="outline"
+        size="sm"
+        type="button"
+        className="min-h-11 touch-manipulation sm:min-h-9"
+        onClick={openDialog}
+      >
         Edit
       </Button>
       <DialogContent className="sm:max-w-lg" showCloseButton>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -10,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { DeleteTournamentButton } from "@/features/dashboard/delete-tournament-button";
 import { APP_NAME, ROUTES } from "@/constants/app";
 import { DRAFT_PHASE_LABEL } from "@/constants/draft-phase-labels";
 import { getSessionUser } from "@/lib/auth/session";
@@ -66,16 +68,20 @@ export default async function DashboardPage() {
             Make teams and players first. On auction day, open Admin and Big screen.
           </p>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
           <Link
             href={ROUTES.settings}
-            className={cn(buttonVariants({ variant: "outline" }))}
+            className={cn(buttonVariants({ variant: "outline" }), "min-h-11 w-full touch-manipulation justify-center sm:w-auto")}
           >
             Settings
           </Link>
-          <Link href={ROUTES.tournamentNew} className={cn(buttonVariants())}>
+          <Link
+            href={ROUTES.tournamentNew}
+            className={cn(buttonVariants(), "min-h-11 w-full touch-manipulation justify-center sm:w-auto")}
+          >
             New tournament
           </Link>
+          <SignOutButton className="min-h-11 w-full sm:w-auto" variant="outline" />
         </div>
       </header>
 
@@ -126,35 +132,54 @@ export default async function DashboardPage() {
                   <div className="flex flex-wrap gap-2 border-t border-border/60 pt-4">
                     <Link
                       href={ROUTES.tournament(tournament.slug)}
-                      className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "min-h-11 touch-manipulation px-4 sm:min-h-9",
+                      )}
                     >
                       Home
                     </Link>
                     <Link
                       href={ROUTES.teams(tournament.slug)}
-                      className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "min-h-11 touch-manipulation px-4 sm:min-h-9",
+                      )}
                     >
                       Teams
                     </Link>
                     <Link
                       href={ROUTES.players(tournament.slug)}
-                      className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "min-h-11 touch-manipulation px-4 sm:min-h-9",
+                      )}
                     >
                       Players
                     </Link>
                     <Link
                       href={ROUTES.rules(tournament.slug)}
-                      className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "min-h-11 touch-manipulation px-4 sm:min-h-9",
+                      )}
                     >
                       Rules
                     </Link>
                     <Link
                       href={ROUTES.draft(tournament.slug)}
-                      className={cn(buttonVariants({ size: "sm" }), "ml-auto w-full sm:w-auto")}
+                      className={cn(
+                        buttonVariants({ size: "sm" }),
+                        "min-h-11 w-full touch-manipulation px-4 sm:w-auto sm:min-h-9 sm:ml-auto",
+                      )}
                     >
                       Auction
                     </Link>
                   </div>
+                  <DeleteTournamentButton
+                    tournamentSlug={tournament.slug}
+                    tournamentName={tournament.name}
+                  />
                 </CardContent>
               </Card>
             ))
