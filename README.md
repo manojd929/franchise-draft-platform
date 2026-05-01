@@ -1,36 +1,168 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DraftForge · Franchise draft platform
 
-## Getting Started
+**DraftForge** is a web app for running **live snake drafts** for sports clubs and leagues: franchises (teams), athlete roster photos, **fair pick order**, squad caps by category, and a separate **organizer** vs **owner** flow so picks are nominated then confirmed.
 
-First, run the development server:
+Built with **Next.js 16** (App Router), **React 19**, **PostgreSQL** via **Prisma**, **Supabase Auth**, and optional **Vercel Blob** for images.
+
+---
+
+## Features
+
+- **Tournaments** — slug-based hubs with branding (name, accent color, logo).
+- **Teams & owners** — assign each franchise to a logged-in owner (UUID synced from Supabase).
+- **Players** — categories (men beginner / intermediate / advanced, women), gender, photos, availability flags.
+- **Squad rules** — per-category caps per team; recomputed from roster size and franchise count where applicable.
+- **Snake draft** — randomized order (organizer), round-robin snake slots, live phase controls (pause, freeze, lock).
+- **Auction board** — filtered grid of players; owners tap to nominate when it is their turn.
+- **Admin control room** — start/pause draft, confirm or undo picks, advance turn, optional validation override (with confirmation dialog).
+- **TV display** — simplified board for a projector.
+- **Realtime-ish updates** — polling plus optional Supabase Realtime on tournament rows.
+
+---
+
+## Tech stack
+
+| Area | Choice |
+|------|--------|
+| Framework | Next.js 16, Turbopack |
+| UI | React 19, Tailwind CSS 4, shadcn-style primitives (Base UI) |
+| Data | Prisma 7, `@prisma/adapter-pg`, `pg` |
+| Auth | Supabase (SSR cookie sessions, service role for admin user provisioning) |
+| Storage | Vercel Blob (optional) for logos and player photos |
+| Validation | Zod |
+| Tests | Vitest |
+
+---
+
+## Prerequisites
+
+- **Node.js** 20+ recommended (align with Vercel defaults).
+- **PostgreSQL** database (Supabase hosted Postgres works well).
+- **Supabase project** for authentication (`NEXT_PUBLIC_*` + anon key + **service role** for commissioner-created owner accounts).
+
+---
+
+## Getting started
+
+### 1. Clone and install
+
+```bash
+git clone git@github.com:manojd929/franchise-draft-platofrm.git
+cd franchise-draft-platofrm
+npm install
+```
+
+### 2. Environment
+
+Copy the template and fill in real values:
+
+```bash
+cp .env.example .env
+```
+
+See **[Environment variables](#environment-variables)** below. Never commit `.env`.
+
+### 3. Database
+
+Generate the client and apply migrations:
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+For a fresh Supabase DB, use the **session pooler** URL on port **5432** for Prisma CLI (`DIRECT_URL` in `.env.example`) so migrations work reliably over IPv4.
+
+### 4. Baseline profile seed (optional)
+
+Creates a fixed local admin profile row used in some dev setups:
+
+```bash
+npx tsx prisma/seed.ts
+```
+
+You still need a matching **Supabase Auth** user (same UUID) or sign up through the app so `UserProfile` syncs on login.
+
+### 5. Run the app
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment variables
 
-## Learn More
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `DATABASE_URL` | Yes | Postgres URL for the running app (often Supabase **transaction** pooler `:6543` + `pgbouncer=true`). |
+| `DIRECT_URL` | Yes for CLI | Postgres URL for **`prisma migrate`** (often **session** pooler `:5432`). |
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key (browser + server). |
+| `SUPABASE_SERVICE_ROLE_KEY` | For owner invites | Server-only; powers “create franchise owner login”. |
+| `BLOB_READ_WRITE_TOKEN` | Optional | Vercel Blob; enables upload buttons for logos/photos. |
+| `NEXT_PUBLIC_APP_ORIGIN` | Optional | Canonical site URL (e.g. Vercel prod URL); used when printing links from demo seed. |
 
-To learn more about Next.js, take a look at the following resources:
+Demo-only seed toggles (`DEMO_SEED_*`, `DEMO_SEED_PRINT_CREDENTIALS`) are documented in **`prisma/seed-demo-tournament.ts`** and `.env.example`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## NPM scripts
 
-## Deploy on Vercel
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Next.js development server |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest |
+| `npm run db:migrate` | Create/apply migrations (dev) |
+| `npm run db:migrate:deploy` | Apply migrations (production / CI) |
+| `npm run db:push` | Push schema without migration files (prototyping only) |
+| `npm run seed:demo-tournament` | Provisions demo Supabase users + tournament (**run locally**, see script header) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## How roles work at draft time
+
+| Screen | Who | Purpose |
+|--------|-----|---------|
+| **Admin** (`/tournament/[slug]/admin`) | Tournament creator (commissioner) | Shuffle order, start draft, **confirm** picks, pause/skip/advance. |
+| **Auction board** (`/draft`) | Everyone | Browse players and filters. |
+| **Owner** (`/owner`) | Franchise owner on their phone | Request a pick when it is their slot; commissioner confirms on Admin. |
+| **Big screen** (`/tv`) | Room display | Large read-only-friendly view. |
+
+---
+
+## Deployment (Vercel)
+
+1. Connect this repo to Vercel and set **all** env vars from `.env.example` (production values).
+2. Ensure **`npm run build`** succeeds (`postinstall` runs **`prisma generate`**).
+3. Run **`npm run db:migrate:deploy`** against production **once per migration change** (GitHub Action, Vercel deploy hook, or manual from a trusted machine). Use `DIRECT_URL` / non-pgbouncer URL for migrate if your provider requires it.
+4. Do **not** run **`seed:demo-tournament`** on Vercel; it refuses when `VERCEL=1`.
+
+Optional: configure Supabase Auth **redirect URLs** for your production domain (login callback).
+
+---
+
+## Project layout (high level)
+
+```
+src/app/           # App Router routes (marketing, dashboard, tournament/*)
+src/components/    # Shared UI and draft-room pieces
+src/features/      # Feature modules (forms, server actions)
+src/services/      # Domain services (draft, tournament)
+src/lib/           # Auth, Prisma, Supabase, uploads
+prisma/            # Schema, migrations, seeds
+src/proxy.ts       # Edge proxy (session refresh + auth redirects)
+```
+
+Business logic for drafts lives in **`src/services/draft-service.ts`** and **`src/services/tournament-service.ts`**.
+
+---
+
+## License
+
+Private / all rights reserved unless you add an explicit `LICENSE` file.
