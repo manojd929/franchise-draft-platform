@@ -4,28 +4,63 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { TvTeamRosterPanel } from "@/components/draft/tv-team-roster-panel";
+import { RosterCategoryPill } from "@/features/roster/roster-category-pill";
 import { DraftPhase } from "@/generated/prisma/enums";
 import { useDraftLiveSync } from "@/hooks/use-draft-live-sync";
-import type { DraftSnapshotDto } from "@/types/draft";
+import { cn } from "@/lib/utils";
+import type { DraftPlayerDto, DraftSnapshotDto } from "@/types/draft";
 import { DRAFT_PHASE_LABEL } from "@/constants/draft-phase-labels";
-import { PLAYER_CATEGORY_LABEL } from "@/constants/player-labels";
 
 interface TvDisplayClientProps {
   slug: string;
   initialSnapshot: DraftSnapshotDto;
 }
 
+/** Public hall / projector board: respects light & dark themes; franchises stack vertically. */
 export function TvDisplayClient({ slug, initialSnapshot }: TvDisplayClientProps) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
-  useDraftLiveSync(slug, snapshot.tournamentId, setSnapshot, 2500);
+  useDraftLiveSync(slug, snapshot.tournamentId, setSnapshot, {
+    enabled: true,
+    accelerated:
+      snapshot.draftPhase === DraftPhase.LIVE ||
+      snapshot.draftPhase === DraftPhase.PAUSED,
+  });
 
   const teamsById = useMemo(() => {
-    const map: Record<string, (typeof snapshot.teams)[0]> = {};
+    const map: Record<string, DraftSnapshotDto["teams"][number]> = {};
     snapshot.teams.forEach((t) => {
       map[t.id] = t;
     });
     return map;
-  }, [snapshot]);
+  }, [snapshot.teams]);
+
+  const rosterCategoryRank = useMemo(() => {
+    const map = new Map<string, number>();
+    snapshot.squadRules.forEach((rule, index) => {
+      map.set(rule.rosterCategoryId, index);
+    });
+    return map;
+  }, [snapshot.squadRules]);
+
+  const { confirmedByTeam, pendingByTeam } = useMemo(() => {
+    const confirmedMap = new Map<string, DraftPlayerDto[]>();
+    const pendingMap = new Map<string, DraftPlayerDto[]>();
+    for (const player of snapshot.players) {
+      const teamId = player.assignedTeamId;
+      if (!teamId) continue;
+      if (player.hasConfirmedPick) {
+        const bucket = confirmedMap.get(teamId) ?? [];
+        bucket.push(player);
+        confirmedMap.set(teamId, bucket);
+      } else {
+        const bucket = pendingMap.get(teamId) ?? [];
+        bucket.push(player);
+        pendingMap.set(teamId, bucket);
+      }
+    }
+    return { confirmedByTeam: confirmedMap, pendingByTeam: pendingMap };
+  }, [snapshot.players]);
 
   const currentTurnTeamId = useMemo(() => {
     const slot = snapshot.draftSlots.find(
@@ -35,108 +70,177 @@ export function TvDisplayClient({ slug, initialSnapshot }: TvDisplayClientProps)
   }, [snapshot.currentSlotIndex, snapshot.draftSlots]);
 
   const activeTeam = currentTurnTeamId ? teamsById[currentTurnTeamId] : null;
-
   const live = snapshot.draftPhase === DraftPhase.LIVE;
 
-  return (
-    <div className="relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-background px-4 py-6 text-foreground sm:px-6 sm:py-10 dark:bg-[radial-gradient(ellipse_at_top,_rgba(56,189,248,0.22),_transparent_55%),radial-gradient(ellipse_at_bottom,_rgba(168,85,247,0.18),_transparent_45%),#020617] dark:text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.06)_1px,transparent_1px)] bg-[size:48px_48px] opacity-40 dark:bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] dark:opacity-40" />
+  const progressDenominator =
+    snapshot.draftSlotsTotal > 0 ? snapshot.draftSlotsTotal : 1;
+  const progressPercent =
+    snapshot.draftSlotsTotal > 0
+      ? Math.min(
+          100,
+          Math.round((snapshot.picksCount / snapshot.draftSlotsTotal) * 100),
+        )
+      : 0;
 
-      <header className="relative z-10 mb-6 flex flex-col gap-4 border-b border-border pb-6 sm:mb-10 sm:gap-6 sm:pb-8 md:flex-row md:flex-wrap md:items-start md:justify-between dark:border-white/10">
-        <div className="min-w-0">
-          <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground sm:text-xs sm:tracking-[0.2em] dark:text-sky-200/90">
-            TV screen
-          </p>
-          <h1 className="mt-3 max-w-4xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
-            {snapshot.name}
-          </h1>
-        </div>
-        <div className="flex flex-row items-center justify-between gap-3 sm:flex-col sm:items-end">
-          <Badge className="border-border bg-muted px-3 py-1.5 text-xs font-normal text-foreground sm:px-4 sm:text-sm dark:border-white/20 dark:bg-white/10 dark:text-white">
-            {DRAFT_PHASE_LABEL[snapshot.draftPhase]}
-          </Badge>
-          <p className="text-xs text-muted-foreground sm:text-sm dark:text-white/80">
-            Turn{" "}
-            <span className="font-semibold text-foreground dark:text-white">
-              {Math.min(
-                snapshot.currentSlotIndex + 1,
-                Math.max(snapshot.draftSlotsTotal, 1),
-              )}
-            </span>
-            {" / "}
-            {snapshot.draftSlotsTotal || "-"}
-          </p>
+  const currentPickOrdinal = Math.min(
+    snapshot.currentSlotIndex + 1,
+    Math.max(snapshot.draftSlotsTotal, 1),
+  );
+
+  return (
+    <div className="relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-background text-foreground dark:bg-[#070b14] dark:text-white">
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-sky-100/85 via-background to-muted/35 opacity-95 dark:hidden"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(ellipse_100%_70%_at_50%_-15%,rgba(56,189,248,0.18),transparent_58%),radial-gradient(ellipse_80%_50%_at_95%_100%,rgba(168,85,247,0.08),transparent_55%)] dark:block"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(hsl(var(--border)/0.45)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border)/0.45)_1px,transparent_1px)] bg-[size:clamp(40px,5vw,64px)_clamp(40px,5vw,64px)] opacity-[0.45] dark:bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] dark:opacity-[0.22]"
+        aria-hidden
+      />
+
+      <header className="relative z-10 shrink-0 border-b border-border px-3 pb-8 pt-6 min-[400px]:px-4 sm:px-6 sm:pb-10 sm:pt-10 md:px-8 md:pb-12">
+        <div className="mx-auto flex max-w-4xl flex-col gap-6 md:max-w-[1920px] md:flex-row md:items-end md:justify-between md:gap-10 lg:gap-12">
+          <div className="min-w-0 space-y-2 sm:space-y-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary sm:text-[11px] sm:tracking-[0.28em] dark:text-sky-200/90">
+              Live Auction Status
+            </p>
+            <h1 className="text-balance text-[clamp(1.5rem,6vw,3.5rem)] font-bold leading-[1.08] tracking-tight md:text-[clamp(1.85rem,3.8vw,3.85rem)]">
+              {snapshot.name}
+            </h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-[clamp(0.95rem,1.35vw,1.15rem)] dark:text-white/65">
+              Live franchise rosters · current clock · drafted squads grouped by roster group.
+            </p>
+          </div>
+
+          <div className="flex w-full shrink-0 flex-col gap-3 sm:gap-4 md:max-w-md lg:max-w-lg">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <Badge variant="secondary" className="border-border px-3 py-1.5 text-xs font-medium dark:border-white/20 dark:bg-white/10 dark:text-white">
+                {DRAFT_PHASE_LABEL[snapshot.draftPhase]}
+              </Badge>
+              {live && snapshot.auctionSpotlightRosterCategoryId ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-full border border-sky-200 bg-sky-50/95 px-2.5 py-1 dark:border-sky-400/35 dark:bg-sky-500/15 sm:gap-3 sm:px-3 sm:py-1.5">
+                  <span className="text-[9px] font-semibold uppercase tracking-widest text-sky-800 dark:text-sky-100/90 sm:text-[10px]">
+                    Active round
+                  </span>
+                  <RosterCategoryPill
+                    name={snapshot.auctionSpotlightRosterCategoryName ?? "Roster group"}
+                    colorHex={snapshot.auctionSpotlightRosterCategoryColorHex}
+                    className="border-border text-xs dark:border-white/20 dark:bg-black/30 dark:text-white"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm backdrop-blur-sm sm:p-5 dark:border-white/12 dark:bg-black/40 dark:shadow-[0_0_80px_-40px_rgba(56,189,248,0.35)]">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-[11px] dark:text-white/50">
+                    On the clock
+                  </p>
+                  <p
+                    className={cn(
+                      "mt-1 text-[clamp(1.1rem,4.5vw,1.95rem)] font-bold leading-tight md:text-[clamp(1.25rem,2.4vw,2rem)]",
+                      live ? "text-foreground dark:text-white" : "text-muted-foreground dark:text-white/45",
+                    )}
+                  >
+                    {activeTeam?.name ?? "—"}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-[11px] dark:text-white/50">
+                    Draft progress
+                  </p>
+                  <p className="mt-1 font-mono text-base font-semibold tabular-nums text-foreground sm:text-lg dark:text-white">
+                    Pick {snapshot.picksCount}/{progressDenominator}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground tabular-nums sm:text-xs dark:text-white/45">
+                    Slot {currentPickOrdinal} of {snapshot.draftSlotsTotal || "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-muted dark:bg-white/10">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-500 dark:from-sky-400 dark:to-emerald-400"
+                  animate={{ width: `${progressPercent}%` }}
+                  transition={{ type: "spring", stiffness: 120, damping: 22 }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
-      <main className="relative z-10 grid flex-1 gap-4 sm:gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-        <section className="flex min-h-0 flex-col justify-center rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-lg backdrop-blur-xl sm:rounded-3xl sm:p-10 dark:border-white/15 dark:bg-black/45 dark:text-white dark:shadow-[0_0_120px_-40px_rgba(56,189,248,0.85)]">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground dark:text-white/65">
-            Picks now
-          </p>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTeam?.id ?? "idle"}
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.45 }}
-              className="mt-6"
-            >
-              <p
-                className={`break-words text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl ${live ? "text-foreground dark:text-white" : "text-muted-foreground dark:text-white/40"}`}
+      {snapshot.lastConfirmedPick ? (
+        <section className="relative z-10 border-b border-emerald-200 bg-emerald-50/90 px-3 py-5 text-foreground sm:px-6 md:px-8 dark:border-emerald-500/20 dark:bg-emerald-950/35 dark:text-white">
+          <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:gap-4 md:max-w-[1920px] md:flex-row md:items-center md:gap-10 lg:gap-12">
+            <p className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-800 sm:text-[11px] dark:text-emerald-200/95">
+              Latest drafted pick
+            </p>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={snapshot.lastConfirmedPick.playerName}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.35 }}
+                className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 md:gap-8"
               >
-                {activeTeam?.name ?? "Waiting to start"}
-              </p>
-              {activeTeam?.shortName ? (
-                <p className="mt-4 text-xl font-medium text-sky-700 sm:text-2xl md:text-3xl dark:text-sky-200">
-                  {activeTeam.shortName}
-                </p>
-              ) : null}
-            </motion.div>
-          </AnimatePresence>
-        </section>
-
-        <section className="flex flex-col gap-4 rounded-2xl border border-border bg-muted/40 p-5 text-foreground backdrop-blur-xl sm:gap-6 sm:rounded-3xl sm:p-8 dark:border-white/10 dark:bg-black/35 dark:text-white">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground dark:text-white/60">
-            Last pick
-          </p>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={snapshot.lastConfirmedPick?.playerName ?? "none"}
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.94 }}
-              transition={{ duration: 0.4 }}
-              className="flex flex-1 flex-col justify-center rounded-2xl border border-emerald-600/35 bg-emerald-600/10 p-6 dark:border-emerald-400/30 dark:bg-emerald-400/10"
-            >
-              {snapshot.lastConfirmedPick ? (
-                <>
-                  <p className="text-xs font-medium uppercase tracking-wide text-emerald-800 sm:text-sm dark:text-emerald-100/90">
-                    Joins team
-                  </p>
-                  <p className="mt-3 break-words text-3xl font-semibold text-foreground sm:mt-4 sm:text-4xl md:text-5xl dark:text-white">
+                <div className="min-w-0">
+                  <p className="text-[clamp(1.2rem,5vw,2.1rem)] font-bold leading-snug tracking-tight md:text-[clamp(1.35rem,2.8vw,2.25rem)]">
                     {snapshot.lastConfirmedPick.playerName}
                   </p>
-                  <p className="mt-2 text-base text-emerald-900 sm:mt-3 sm:text-lg dark:text-emerald-50/95">
-                    {PLAYER_CATEGORY_LABEL[snapshot.lastConfirmedPick.category]}
-                  </p>
-                  <p className="mt-4 text-lg font-medium text-foreground sm:mt-6 sm:text-2xl dark:text-white">
-                    {snapshot.lastConfirmedPick.teamName}
-                  </p>
-                </>
-              ) : (
-                <p className="text-lg text-muted-foreground sm:text-xl dark:text-white/60">
-                  No picks yet.
-                </p>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-3">
+                    <RosterCategoryPill
+                      name={snapshot.lastConfirmedPick.rosterCategoryName}
+                      colorHex={snapshot.lastConfirmedPick.rosterCategoryColorHex}
+                      className="text-sm dark:border-white/25 dark:bg-black/35"
+                    />
+                    <span className="text-sm text-muted-foreground sm:text-[clamp(0.95rem,1.35vw,1.1rem)] dark:text-white/80">
+                      joins{" "}
+                      <strong className="font-semibold text-foreground dark:text-white">
+                        {snapshot.lastConfirmedPick.teamName}
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </section>
+      ) : null}
+
+      <main className="relative z-10 flex-1 px-3 py-8 sm:px-6 sm:py-10 md:px-8 md:pb-14 md:pt-14">
+        <div className="mx-auto mb-6 max-w-4xl sm:mb-8 md:max-w-[1920px]">
+          <h2 className="text-base font-bold tracking-tight text-foreground sm:text-lg md:text-[clamp(1rem,1.5vw,1.25rem)] dark:text-white">
+            Franchise boards
+          </h2>
+          <p className="mt-1 max-w-3xl text-sm text-muted-foreground sm:text-[clamp(0.88rem,1.15vw,1rem)] dark:text-white/55">
+            Every team stacks below · confirmed rosters update live · pending nominees show an amber
+            frame until the organizer confirms.
+          </p>
+        </div>
+
+        {/* Single-column stack — best for readability on TV, projector, tablets, and phones */}
+        <div className="mx-auto flex max-w-4xl flex-col gap-6 sm:gap-8 md:max-w-[1920px]">
+          {snapshot.teams.map((team) => (
+            <TvTeamRosterPanel
+              key={team.id}
+              team={team}
+              confirmedPlayers={confirmedByTeam.get(team.id) ?? []}
+              pendingPlayers={pendingByTeam.get(team.id) ?? []}
+              rosterCategoryRank={rosterCategoryRank}
+              isOnClock={currentTurnTeamId === team.id && live}
+            />
+          ))}
+        </div>
       </main>
 
-      <footer className="relative z-10 mt-6 border-t border-border pt-4 text-center text-[10px] text-muted-foreground sm:mt-10 sm:pt-6 sm:text-xs dark:border-white/10 dark:text-white/50">
-        Press F11 on the TV computer for full screen.
+      <footer className="relative z-10 mt-auto border-t border-border px-3 py-4 text-center text-[10px] text-muted-foreground sm:px-6 sm:py-5 sm:text-xs md:px-8 dark:border-white/10 dark:text-white/45">
+        Full screen suggested on hall displays (e.g. F11). This board auto-refreshes.
       </footer>
     </div>
   );

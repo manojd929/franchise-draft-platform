@@ -2,7 +2,6 @@ import {
   DraftLogAction,
   DraftPhase,
   PickStatus,
-  type PlayerCategory,
 } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -49,16 +48,30 @@ export async function assertTournamentAdmin(
   }
 }
 
-async function getTournamentBySlug(slug: string) {
-  return prisma.tournament.findFirst({
+/** Tournament row used to build auction snapshots; spotlight category resolved without a Tournament-side relation include (avoids Prisma validation errors when the generated client was not regenerated after adding the FK). */
+async function loadDraftTournamentBySlug(slug: string) {
+  const tournament = await prisma.tournament.findFirst({
     where: { slug, deletedAt: null },
     include: {
       teams: {
         where: { deletedAt: null },
         orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       },
-      players: { where: { deletedAt: null }, orderBy: { name: "asc" } },
-      squadRules: true,
+      players: {
+        where: { deletedAt: null },
+        orderBy: { name: "asc" },
+        include: {
+          rosterCategory: {
+            select: { id: true, name: true, colorHex: true },
+          },
+        },
+      },
+      squadRules: {
+        where: { rosterCategory: { archivedAt: null } },
+        include: {
+          rosterCategory: { select: { id: true, name: true, colorHex: true } },
+        },
+      },
       draftSlots: { orderBy: { slotIndex: "asc" } },
       picks: {
         where: { status: PickStatus.CONFIRMED },
@@ -66,9 +79,34 @@ async function getTournamentBySlug(slug: string) {
       },
     },
   });
+  if (!tournament) return null;
+
+  let activeAuctionRosterCategory: {
+    id: string;
+    name: string;
+    colorHex: string | null;
+    archivedAt: Date | null;
+  } | null = null;
+
+  if (tournament.activeAuctionRosterCategoryId) {
+    activeAuctionRosterCategory = await prisma.rosterCategory.findFirst({
+      where: {
+        id: tournament.activeAuctionRosterCategoryId,
+        tournamentId: tournament.id,
+      },
+      select: {
+        id: true,
+        name: true,
+        colorHex: true,
+        archivedAt: true,
+      },
+    });
+  }
+
+  return { ...tournament, activeAuctionRosterCategory };
 }
 
-function mapSnapshot(t: NonNullable<Awaited<ReturnType<typeof getTournamentBySlug>>>): DraftSnapshotDto {
+function mapSnapshot(t: NonNullable<Awaited<ReturnType<typeof loadDraftTournamentBySlug>>>): DraftSnapshotDto {
   const playerAssignments = new Map<
     string,
     { teamId: string; confirmed: boolean }
@@ -101,6 +139,17 @@ function mapSnapshot(t: NonNullable<Awaited<ReturnType<typeof getTournamentBySlu
     ? t.players.find((pl) => pl.id === lastPick.playerId)
     : undefined;
 
+  const spotlightCategoryId = getEffectiveAuctionSpotlightCategoryId({
+    activeAuctionRosterCategoryId: t.activeAuctionRosterCategoryId,
+    activeAuctionRosterCategory: t.activeAuctionRosterCategory,
+  });
+  const spotlightMeta =
+    spotlightCategoryId !== null &&
+    t.activeAuctionRosterCategory &&
+    t.activeAuctionRosterCategory.id === spotlightCategoryId
+      ? t.activeAuctionRosterCategory
+      : null;
+
   return {
     tournamentId: t.id,
     slug: t.slug,
@@ -111,6 +160,9 @@ function mapSnapshot(t: NonNullable<Awaited<ReturnType<typeof getTournamentBySlu
     draftOrderLocked: t.draftOrderLocked,
     overrideValidation: t.overrideValidation,
     pickTimerSeconds: t.pickTimerSeconds,
+    auctionSpotlightRosterCategoryId: spotlightMeta?.id ?? null,
+    auctionSpotlightRosterCategoryName: spotlightMeta?.name ?? null,
+    auctionSpotlightRosterCategoryColorHex: spotlightMeta?.colorHex ?? null,
     pendingPickPlayerId: t.pendingPickPlayerId,
     pendingPickTeamId: t.pendingPickTeamId,
     teams: t.teams.map((team) => ({
@@ -127,7 +179,9 @@ function mapSnapshot(t: NonNullable<Awaited<ReturnType<typeof getTournamentBySlu
         id: player.id,
         name: player.name,
         photoUrl: player.photoUrl,
-        category: player.category,
+        rosterCategoryId: player.rosterCategoryId,
+        rosterCategoryName: player.rosterCategory.name,
+        rosterCategoryColorHex: player.rosterCategory.colorHex,
         gender: player.gender,
         notes: player.notes,
         isUnavailable: player.isUnavailable,
@@ -142,18 +196,21 @@ function mapSnapshot(t: NonNullable<Awaited<ReturnType<typeof getTournamentBySlu
       teamId: slot.teamId,
     })),
     squadRules: t.squadRules.map((rule) => ({
-      category: rule.category,
+      rosterCategoryId: rule.rosterCategoryId,
+      rosterCategoryName: rule.rosterCategory.name,
+      rosterCategoryColorHex: rule.rosterCategory.colorHex,
       maxCount: rule.maxCount,
     })),
     picksCount: t.picks.filter((p) => p.status === PickStatus.CONFIRMED).length,
     draftSlotsTotal: t.draftSlots.length,
     activity: [],
     lastConfirmedPick:
-      lastPick && lastTeam && lastPlayer
+      lastPick && lastTeam && lastPlayer && lastPlayer.rosterCategory
         ? {
             playerName: lastPlayer.name,
             teamName: lastTeam.name,
-            category: lastPlayer.category,
+            rosterCategoryName: lastPlayer.rosterCategory.name,
+            rosterCategoryColorHex: lastPlayer.rosterCategory.colorHex,
           }
         : null,
   };
@@ -162,7 +219,7 @@ function mapSnapshot(t: NonNullable<Awaited<ReturnType<typeof getTournamentBySlu
 export async function fetchDraftSnapshotBySlug(
   slug: string,
 ): Promise<DraftSnapshotDto | null> {
-  const tournament = await getTournamentBySlug(slug);
+  const tournament = await loadDraftTournamentBySlug(slug);
   if (!tournament) return null;
   const logs = await prisma.draftLog.findMany({
     where: { tournamentId: tournament.id },
@@ -209,7 +266,7 @@ function getCurrentTurnTeamId(
 async function countTeamCategoryPicks(
   tournamentId: string,
   teamId: string,
-): Promise<Record<PlayerCategory, number>> {
+): Promise<Record<string, number>> {
   const picks = await prisma.pick.findMany({
     where: {
       tournamentId,
@@ -217,19 +274,31 @@ async function countTeamCategoryPicks(
       status: PickStatus.CONFIRMED,
     },
     select: {
-      player: { select: { category: true } },
+      player: { select: { rosterCategoryId: true } },
     },
   });
-  const counts: Record<PlayerCategory, number> = {
-    MEN_BEGINNER: 0,
-    MEN_INTERMEDIATE: 0,
-    MEN_ADVANCED: 0,
-    WOMEN: 0,
-  };
+  const counts: Record<string, number> = {};
   for (const pick of picks) {
-    counts[pick.player.category] += 1;
+    const cid = pick.player.rosterCategoryId;
+    counts[cid] = (counts[cid] ?? 0) + 1;
   }
   return counts;
+}
+
+function getEffectiveAuctionSpotlightCategoryId(args: {
+  activeAuctionRosterCategoryId: string | null;
+  activeAuctionRosterCategory: {
+    archivedAt: Date | null;
+  } | null;
+}): string | null {
+  if (
+    !args.activeAuctionRosterCategoryId ||
+    args.activeAuctionRosterCategory === null ||
+    args.activeAuctionRosterCategory.archivedAt !== null
+  ) {
+    return null;
+  }
+  return args.activeAuctionRosterCategoryId;
 }
 
 async function validatePickAllowed(params: {
@@ -238,6 +307,22 @@ async function validatePickAllowed(params: {
   playerId: string;
   overrideValidation: boolean;
 }) {
+  const spotlightTournament = await prisma.tournament.findFirst({
+    where: { id: params.tournamentId, deletedAt: null },
+    select: { activeAuctionRosterCategoryId: true },
+  });
+  const spotlightFk = spotlightTournament?.activeAuctionRosterCategoryId ?? null;
+  let spotlightCategoryRow: { archivedAt: Date | null } | null = null;
+  if (spotlightFk !== null) {
+    spotlightCategoryRow = await prisma.rosterCategory.findFirst({
+      where: {
+        id: spotlightFk,
+        tournamentId: params.tournamentId,
+      },
+      select: { archivedAt: true },
+    });
+  }
+
   const player = await prisma.player.findFirst({
     where: {
       id: params.playerId,
@@ -269,14 +354,27 @@ async function validatePickAllowed(params: {
 
   if (params.overrideValidation) return;
 
+  const spotlightId = getEffectiveAuctionSpotlightCategoryId({
+    activeAuctionRosterCategoryId: spotlightFk,
+    activeAuctionRosterCategory: spotlightCategoryRow,
+  });
+  if (spotlightId && player.rosterCategoryId !== spotlightId) {
+    throw new DraftServiceError(
+      "This auction spotlight is restricted to another roster group. Change the LIVE round spotlight or temporarily enable rules override to proceed.",
+    );
+  }
+
   const rules = await prisma.squadRule.findMany({
-    where: { tournamentId: params.tournamentId },
+    where: {
+      tournamentId: params.tournamentId,
+      rosterCategory: { archivedAt: null },
+    },
   });
   const counts = await countTeamCategoryPicks(params.tournamentId, params.teamId);
-  const category = player.category;
-  const rule = rules.find((r) => r.category === category);
+  const rosterCategoryId = player.rosterCategoryId;
+  const rule = rules.find((r) => r.rosterCategoryId === rosterCategoryId);
   const max = rule?.maxCount ?? 0;
-  if (counts[category] >= max) {
+  if ((counts[rosterCategoryId] ?? 0) >= max) {
     throw new DraftServiceError(
       "Squad rule violation: category quota reached for this team.",
     );
@@ -433,6 +531,76 @@ export async function resumeDraft(params: {
   });
 }
 
+export async function setAuctionSpotlightCategory(params: {
+  tournamentSlug: string;
+  actorUserId: string;
+  rosterCategoryId: string | null;
+}) {
+  const tournament = await prisma.tournament.findFirst({
+    where: { slug: params.tournamentSlug, deletedAt: null },
+  });
+  if (!tournament) throw new DraftServiceError("Tournament not found.");
+  if (tournament.createdById !== params.actorUserId) {
+    throw new DraftServiceError(
+      "Only tournament admin can set the LIVE roster spotlight.",
+    );
+  }
+  assertPhase(tournament.draftPhase, [
+    DraftPhase.SETUP,
+    DraftPhase.READY,
+    DraftPhase.LIVE,
+    DraftPhase.PAUSED,
+    DraftPhase.FROZEN,
+  ]);
+
+  const nextSpotlightId = params.rosterCategoryId;
+  let categoryLabel: string | null = null;
+  if (nextSpotlightId !== null) {
+    const cat = await prisma.rosterCategory.findFirst({
+      where: {
+        id: nextSpotlightId,
+        tournamentId: tournament.id,
+        archivedAt: null,
+      },
+      select: { name: true },
+    });
+    if (!cat) {
+      throw new DraftServiceError("Roster group not found or is archived.");
+    }
+    categoryLabel = cat.name;
+  }
+
+  const prevId = tournament.activeAuctionRosterCategoryId ?? null;
+  const nextId = nextSpotlightId ?? null;
+  if (prevId === nextId) return;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.tournament.update({
+      where: { id: tournament.id },
+      data: {
+        activeAuctionRosterCategoryId: nextId,
+        pendingPickPlayerId: null,
+        pendingPickTeamId: null,
+        pendingIdempotencyKey: null,
+      },
+    });
+
+    await tx.draftLog.create({
+      data: {
+        tournamentId: tournament.id,
+        action: DraftLogAction.AUCTION_FOCUS_CATEGORY,
+        message:
+          nextId === null
+            ? "Spotlight cleared — owners can nominate from any roster group."
+            : `Spotlight locked to roster group "${categoryLabel ?? "Unknown"}". Owners only see nominees in this group.`,
+        actorUserId: params.actorUserId,
+        payload:
+          nextId === null ? undefined : { rosterCategoryId: nextId } as Prisma.InputJsonValue,
+      },
+    });
+  });
+}
+
 export async function freezeDraft(params: {
   tournamentSlug: string;
   actorUserId: string;
@@ -517,6 +685,10 @@ export async function endDraft(params: {
     data: {
       draftPhase: DraftPhase.COMPLETED,
       draftEndedAt: new Date(),
+      activeAuctionRosterCategoryId: null,
+      pendingPickPlayerId: null,
+      pendingPickTeamId: null,
+      pendingIdempotencyKey: null,
     },
   });
   await appendLog({

@@ -7,17 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createLeagueOwnerAction } from "@/features/tournaments/actions";
+import { ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE } from "@/lib/errors/safe-user-feedback";
+import { cn } from "@/lib/utils";
 
 interface InviteOwnerPanelProps {
   tournamentSlug: string;
   invitingSupported: boolean;
   canInviteOwners: boolean;
+  variant?: "card" | "plain";
+  onCreated?: () => void;
 }
 
 export function InviteOwnerPanel({
   tournamentSlug,
   invitingSupported,
   canInviteOwners,
+  variant = "card",
+  onCreated,
 }: InviteOwnerPanelProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -44,31 +50,38 @@ export function InviteOwnerPanel({
       }
       form.reset();
       setDoneMessage(
-        `Created login for ${result.email ?? "that account"}. Prefer adding roster rows on Players first next time; you can still assign them below.`,
+        `Created login for ${result.email ?? "that account"}. Prefer adding roster rows on Players first next time; you can still assign a franchise when you close this panel.`,
       );
       router.refresh();
+      onCreated?.();
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  const cardFrame = variant === "card";
+
   if (!invitingSupported) {
     return (
-      <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-5 text-sm">
-        <p className="font-medium text-foreground">Owner invites need one env variable</p>
-        <p className="mt-2 text-muted-foreground">
-          Add <span className="font-mono text-xs">SUPABASE_SERVICE_ROLE_KEY</span> to{" "}
-          <span className="font-mono text-xs">.env</span> (Supabase → Project Settings → API →{" "}
-          <span className="font-mono text-xs">service_role</span>). Restart{" "}
-          <span className="font-mono text-xs">npm run dev</span>. Until then, owners must still be
-          created in Supabase.
-        </p>
+      <div
+        className={cn(
+          "text-sm",
+          cardFrame &&
+            "rounded-xl border border-amber-500/40 bg-amber-500/5 p-5",
+        )}
+      >
+        <p className="font-medium text-foreground">Owner invites need administrator setup</p>
+        <p className="mt-2 text-muted-foreground">{ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE}</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-border/70 bg-card/40 p-6 backdrop-blur-md">
+    <div
+      className={cn(
+        cardFrame ? "rounded-xl border border-border/70 bg-card/40 p-6 backdrop-blur-md" : "space-y-4",
+      )}
+    >
       <h3 className="text-lg font-semibold tracking-tight">Optional: owner login without a roster row</h3>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
         Preferred flow is Players → add the person → Grant login → Teams → assign franchise.
@@ -111,8 +124,8 @@ export function InviteOwnerPanel({
             <Input id="invite-name" name="displayName" placeholder="Priya K." />
           </div>
           <div className="flex sm:col-span-2 lg:col-span-1">
-            <Button type="submit" disabled={isSubmitting} className="w-full lg:w-auto">
-              {isSubmitting ? "Creating…" : "Create owner"}
+            <Button type="submit" pending={isSubmitting} pendingLabel="Creating…" className="w-full lg:w-auto">
+              Create owner
             </Button>
           </div>
         </form>

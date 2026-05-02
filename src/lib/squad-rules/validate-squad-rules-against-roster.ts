@@ -1,8 +1,5 @@
-import type { PlayerCategory } from "@/generated/prisma/enums";
-import { PLAYER_CATEGORY_LABEL } from "@/constants/player-labels";
-
 export interface SquadRuleMaxRow {
-  category: PlayerCategory;
+  rosterCategoryId: string;
   maxCount: number;
 }
 
@@ -10,8 +7,10 @@ export interface ValidateSquadRulesAgainstRosterParams {
   teamCount: number;
   picksPerTeam: number;
   totalPlayers: number;
-  playersPerCategory: Partial<Record<PlayerCategory, number>>;
+  playersPerCategory: Partial<Record<string, number>>;
   rules: SquadRuleMaxRow[];
+  /** Human labels for error copy (group names from roster categories). */
+  categoryLabels: Record<string, string>;
   /**
    * When false (e.g. auto-set from roster), skip `teams × picksPerTeam ≤ totalPlayers`.
    * Category caps are independent of snake length; blocking reconcile on draft length prevented auto-fill.
@@ -34,6 +33,7 @@ export function validateSquadRulesAgainstRoster(
     totalPlayers,
     playersPerCategory,
     rules,
+    categoryLabels,
     requireDraftSlotsVsRoster = true,
   } = params;
 
@@ -64,8 +64,8 @@ export function validateSquadRulesAgainstRoster(
 
   for (const rule of rules) {
     if (teamCount > 0 && rule.maxCount > 0) {
-      const label = PLAYER_CATEGORY_LABEL[rule.category];
-      const pool = playersPerCategory[rule.category] ?? 0;
+      const label = categoryLabels[rule.rosterCategoryId] ?? "This group";
+      const pool = playersPerCategory[rule.rosterCategoryId] ?? 0;
       const minimumPlayersNeeded = teamCount * rule.maxCount;
       if (minimumPlayersNeeded > pool) {
         errors.push(

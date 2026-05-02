@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { deleteFranchiseOwnerAction } from "@/features/tournaments/actions";
+import { ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE } from "@/lib/errors/safe-user-feedback";
 import { cn } from "@/lib/utils";
 
 interface DeleteFranchiseOwnerLoginButtonProps {
@@ -39,7 +40,7 @@ export function DeleteFranchiseOwnerLoginButton({
 
   const locked = !invitingSupported || !canInviteOwners;
   const lockedTitle = !invitingSupported
-    ? "Add SUPABASE_SERVICE_ROLE_KEY to remove owner logins from authentication."
+    ? ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE
     : "Owner logins cannot be changed after the draft configuration is sealed.";
 
   async function confirmDelete(): Promise<void> {
@@ -87,9 +88,9 @@ export function DeleteFranchiseOwnerLoginButton({
             <AlertDialogTitle>Remove franchise owner login?</AlertDialogTitle>
             <AlertDialogDescription className="text-left">
               Unassigns{" "}
-              <span className="font-medium text-foreground">{ownerLabel}</span> from every franchise
-              in this league, clears their roster links here, and deletes their Supabase login when
-              nothing else references it.
+              <span className="font-medium text-foreground">{ownerLabel}</span> from every franchise in this
+              league, clears roster links tied to them here, and removes their sign-in credentials when nothing
+              else references that account.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error ? (
@@ -105,13 +106,14 @@ export function DeleteFranchiseOwnerLoginButton({
               type="button"
               variant="destructive"
               className="min-h-11 touch-manipulation"
-              disabled={busy}
+              pending={busy}
+              pendingLabel="Removing…"
               onClick={(event) => {
                 event.preventDefault();
                 void confirmDelete();
               }}
             >
-              {busy ? "Removing…" : "Remove login"}
+              Remove login
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

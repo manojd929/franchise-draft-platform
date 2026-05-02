@@ -6,13 +6,13 @@ import {
 } from "@/features/tournaments/pick-limits-guidance";
 import { SquadRulesAutoFillButton } from "@/features/tournaments/squad-rules-auto-fill-button";
 import { SquadRulesForm } from "@/features/tournaments/squad-rules-form";
-import type { PlayerCategory } from "@/generated/prisma/enums";
 import { getSessionUser } from "@/lib/auth/session";
 import { requireTournamentAccess } from "@/lib/data/tournament-access";
 import {
-  SQUAD_RULE_CATEGORY_ORDER,
+  rosterCategoryOrderIds,
 } from "@/lib/squad-rules/compute-per-team-caps";
 import { prisma } from "@/lib/prisma";
+import type { SquadRuleDto } from "@/types/draft";
 
 export const dynamic = "force-dynamic";
 
@@ -29,60 +29,99 @@ export default async function RulesPage({ params }: PageProps) {
 
   const tournament = await requireTournamentAccess(slug, user.id);
 
-  const [squadRules, teamCount, groupedPlayers] = await Promise.all([
+  const [categories, squadRulesRaw, teamCount, groupedPlayers] = await Promise.all([
+    prisma.rosterCategory.findMany({
+      where: { tournamentId: tournament.id, archivedAt: null },
+      orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        displayOrder: true,
+        colorHex: true,
+      },
+    }),
     prisma.squadRule.findMany({
-      where: { tournamentId: tournament.id },
+      where: {
+        tournamentId: tournament.id,
+        rosterCategory: { archivedAt: null },
+      },
+      include: {
+        rosterCategory: {
+          select: { id: true, name: true, colorHex: true },
+        },
+      },
     }),
     prisma.team.count({
       where: { tournamentId: tournament.id, deletedAt: null },
     }),
     prisma.player.groupBy({
-      by: ["category"],
+      by: ["rosterCategoryId"],
       where: { tournamentId: tournament.id, deletedAt: null },
       _count: { _all: true },
     }),
   ]);
 
-  const playersPerCategory: Partial<Record<PlayerCategory, number>> = {};
-  for (const category of SQUAD_RULE_CATEGORY_ORDER) {
-    playersPerCategory[category] = 0;
+  const categoryOrder = rosterCategoryOrderIds(categories);
+
+  const playersPerCategory: Partial<Record<string, number>> = {};
+  for (const cid of categoryOrder) {
+    playersPerCategory[cid] = 0;
   }
   for (const row of groupedPlayers) {
-    playersPerCategory[row.category] = row._count._all;
+    playersPerCategory[row.rosterCategoryId] = row._count._all;
   }
 
-  const categoryRows: PickLimitsCategoryFitRow[] = SQUAD_RULE_CATEGORY_ORDER.map(
-    (category) => {
-      const pool = playersPerCategory[category] ?? 0;
-      const fairCapPerTeam =
-        teamCount > 0 ? Math.floor(pool / teamCount) : 0;
-      const remainderAfterEvenSplit = pool - teamCount * fairCapPerTeam;
-      return {
-        category,
-        pool,
-        fairCapPerTeam,
-        remainderAfterEvenSplit,
-      };
-    },
-  );
+  const categoryRows: PickLimitsCategoryFitRow[] = categoryOrder.map((rosterCategoryId) => {
+    const meta = categories.find((c) => c.id === rosterCategoryId);
+    const pool = playersPerCategory[rosterCategoryId] ?? 0;
+    const fairCapPerTeam = teamCount > 0 ? Math.floor(pool / teamCount) : 0;
+    const remainderAfterEvenSplit = pool - teamCount * fairCapPerTeam;
+    return {
+      rosterCategoryId,
+      rosterCategoryName: meta?.name ?? "Roster group",
+      rosterCategoryColorHex: meta?.colorHex ?? null,
+      pool,
+      fairCapPerTeam,
+      remainderAfterEvenSplit,
+    };
+  });
 
-  const totalPlayers = SQUAD_RULE_CATEGORY_ORDER.reduce(
-    (sum, category) => sum + (playersPerCategory[category] ?? 0),
+  const totalPlayers = categoryOrder.reduce(
+    (sum, rosterCategoryId) => sum + (playersPerCategory[rosterCategoryId] ?? 0),
     0,
   );
+
+  const squadRuleMap = new Map(squadRulesRaw.map((rule) => [rule.rosterCategoryId, rule]));
+  const initialRules: SquadRuleDto[] = categoryOrder.flatMap((rosterCategoryId) => {
+    const rule = squadRuleMap.get(rosterCategoryId);
+    const meta = categories.find((c) => c.id === rosterCategoryId);
+    if (!rule || !meta) {
+      return [];
+    }
+    return [
+      {
+        rosterCategoryId: rule.rosterCategoryId,
+        rosterCategoryName: meta.name,
+        rosterCategoryColorHex: meta.colorHex,
+        maxCount: rule.maxCount,
+      },
+    ];
+  });
 
   return (
     <div className="space-y-6 sm:space-y-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight sm:text-2xl lg:text-3xl">Pick limits</h2>
+          <h2 className="text-xl font-semibold tracking-tight sm:text-2xl lg:text-3xl">
+            Pick limits
+          </h2>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            Cap how many picks each franchise may spend on each player group. If a group does not
-            divide evenly across teams, an{" "}
+            Cap how many picks each franchise may spend on each roster group. If a group does not divide
+            evenly across teams, an{" "}
             <strong className="font-semibold text-foreground">amber notice under that group</strong>{" "}
             lists how many players need recategorizing or how many to add. Use{" "}
-            <strong className="font-semibold text-foreground">Auto-set limits from roster</strong>{" "}
-            for floor(pool÷teams) defaults. Longer explanations follow under the form.
+            <strong className="font-semibold text-foreground">Auto-set limits from roster</strong> for ⌊pool ÷
+            teams⌋ defaults.
           </p>
         </div>
         <SquadRulesAutoFillButton tournamentSlug={slug} />
@@ -95,10 +134,7 @@ export default async function RulesPage({ params }: PageProps) {
           playersPerCategory,
           categoryFitRows: categoryRows,
         }}
-        initialRules={squadRules.map((rule) => ({
-          category: rule.category,
-          maxCount: rule.maxCount,
-        }))}
+        initialRules={initialRules}
       />
 
       <PickLimitsGuidance

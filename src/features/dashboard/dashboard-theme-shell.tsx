@@ -1,114 +1,68 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Settings } from "lucide-react";
 
 import { AccountHeaderActions } from "@/components/auth/account-header-actions";
+import { APP_NAME, ROUTES } from "@/constants/app";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  DASHBOARD_THEME_STORAGE_KEY,
-  dashboardSportThemeOptions,
-  dashboardThemeAccentGlowClass,
-  dashboardThemeSurfaceClass,
-  parseDashboardSportTheme,
-  type DashboardSportTheme,
-} from "@/constants/dashboard-theme";
+
+import { useDashboardAppearance } from "./dashboard-appearance-provider";
+import { DashboardFloorBackdropShell } from "./dashboard-floor-backdrop-layers";
 
 export function DashboardThemeShell({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const [theme, setTheme] = useState<DashboardSportTheme>("general");
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (cancelled) return;
-      try {
-        const stored = parseDashboardSportTheme(
-          window.localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY),
-        );
-        setTheme(stored);
-      } catch {
-        setTheme("general");
-      }
-      setHydrated(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  function persist(next: DashboardSportTheme): void {
-    setTheme(next);
-    try {
-      window.localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, next);
-    } catch {
-      /* ignore quota / private mode */
-    }
-  }
+  const { floorTheme } = useDashboardAppearance();
 
   return (
-    <div
+    <DashboardFloorBackdropShell
+      theme={floorTheme}
       className={cn(
-        "relative isolate min-h-screen overflow-x-hidden transition-[background] duration-500 ease-out",
-        dashboardThemeSurfaceClass[theme],
+        "min-h-screen overflow-x-hidden",
+        "transition-[background] duration-500 ease-out motion-reduce:transition-none",
       )}
     >
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-0 -z-10 transition-opacity duration-500",
-          dashboardThemeAccentGlowClass[theme],
-        )}
-        aria-hidden
-      />
-      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.035] dark:opacity-[0.06]">
-        <div
-          className="h-full w-full bg-[linear-gradient(rgba(0,0,0,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.14)_1px,transparent_1px)] bg-size-[48px_48px] dark:bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)]"
-          aria-hidden
-        />
-      </div>
-
-      <div className="sticky top-0 z-20 border-b border-border/40 bg-background/55 px-4 py-3 backdrop-blur-md md:px-6">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <div className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Floor theme</span>
-              <span className="hidden sm:inline"> · </span>
-              <span className="block sm:inline">
-                {dashboardSportThemeOptions.find((o) => o.id === theme)?.hint ?? ""}
-              </span>
+      <header className="border-b border-border/40 bg-background/80">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-2.5 md:gap-x-5 md:px-6 md:py-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2 sm:gap-x-8">
+            <div className="min-w-0">
+              <Link
+                href={ROUTES.dashboard}
+                className="inline-flex truncate text-sm font-semibold tracking-tight text-foreground/90 underline-offset-4 transition-colors hover:text-foreground"
+              >
+                {APP_NAME}
+              </Link>
+              <p className="mt-0.5 hidden truncate text-xs text-muted-foreground sm:block">
+                Tournament command
+              </p>
             </div>
-            <div
-              className="flex flex-wrap gap-1.5 sm:justify-start"
-              role="radiogroup"
-              aria-label="Dashboard sport background"
+            <Link
+              href={ROUTES.settings}
+              prefetch={true}
+              className={cn(
+                buttonVariants({ variant: "secondary", size: "sm" }),
+                "inline-flex touch-manipulation items-center gap-2 px-3 shadow-none",
+                "min-h-10 rounded-lg ring-1 ring-border/35 transition-[background,box-shadow,ring-color,transform]",
+                "hover:bg-secondary/95 hover:text-foreground hover:ring-border/55",
+                "active:translate-y-px active:brightness-[0.98]",
+                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:focus-visible:ring-offset-[#09090b]",
+              )}
             >
-              {dashboardSportThemeOptions.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={theme === opt.id}
-                  disabled={!hydrated}
-                  onClick={() => persist(opt.id)}
-                  className={cn(
-                    "min-h-10 touch-manipulation rounded-full border px-3 py-2 text-xs font-medium transition-colors",
-                    theme === opt.id
-                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                      : "border-border/70 bg-background/70 text-foreground hover:bg-accent hover:text-accent-foreground",
-                    !hydrated && "opacity-60",
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+              <Settings
+                strokeWidth={2}
+                className="size-[1.0625rem] shrink-0 text-foreground/80 sm:size-4 dark:text-foreground/85"
+                aria-hidden
+              />
+              <span className="text-[0.8rem] font-medium sm:text-sm">Settings</span>
+            </Link>
           </div>
           <AccountHeaderActions />
         </div>
-      </div>
+      </header>
 
       <div className="relative z-10">{children}</div>
-    </div>
+    </DashboardFloorBackdropShell>
   );
 }

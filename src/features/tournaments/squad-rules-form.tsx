@@ -8,20 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { saveSquadRulesAction } from "@/features/tournaments/actions";
-import type { SquadRuleDto } from "@/types/draft";
-import { PLAYER_CATEGORY_LABEL } from "@/constants/player-labels";
 import type { PickLimitsCategoryFitRow } from "@/features/tournaments/pick-limits-guidance";
-import type { PlayerCategory } from "@/generated/prisma/enums";
-import { sortBySquadRuleCategoryOrder } from "@/lib/squad-rules/compute-per-team-caps";
+import { RosterCategoryPill } from "@/features/roster/roster-category-pill";
+import { sortSquadRulesByRosterCategoryOrder } from "@/lib/squad-rules/compute-per-team-caps";
+import type { SquadRuleDto } from "@/types/draft";
 
 interface SquadRulesFormProps {
   tournamentSlug: string;
   initialRules: SquadRuleDto[];
   rosterSummary: {
     teamCount: number;
-    playersPerCategory: Partial<Record<PlayerCategory, number>>;
+    playersPerCategory: Partial<Record<string, number>>;
     categoryFitRows: PickLimitsCategoryFitRow[];
   };
+}
+
+function rosterCategorySortOrder(initialRules: SquadRuleDto[]): string[] {
+  return initialRules.map((r) => r.rosterCategoryId);
 }
 
 export function SquadRulesForm({
@@ -33,12 +36,13 @@ export function SquadRulesForm({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const ordered = sortBySquadRuleCategoryOrder(initialRules);
+  const canonicalOrder = rosterCategorySortOrder(initialRules);
+  const ordered = sortSquadRulesByRosterCategoryOrder(initialRules, canonicalOrder);
 
   const { teamCount, playersPerCategory, categoryFitRows } = rosterSummary;
 
   const fitByCategory = new Map(
-    categoryFitRows.map((row) => [row.category, row]),
+    categoryFitRows.map((row) => [row.rosterCategoryId, row]),
   );
 
   return (
@@ -48,8 +52,8 @@ export function SquadRulesForm({
         startTransition(async () => {
           setError(null);
           const rules = ordered.map((rule) => ({
-            category: rule.category,
-            maxCount: Number(formData.get(rule.category) ?? rule.maxCount),
+            rosterCategoryId: rule.rosterCategoryId,
+            maxCount: Number(formData.get(`cap-${rule.rosterCategoryId}`) ?? rule.maxCount),
           }));
           const result = await saveSquadRulesAction({
             tournamentSlug,
@@ -65,10 +69,10 @@ export function SquadRulesForm({
     >
       <div className="grid gap-6 md:grid-cols-2">
         {ordered.map((rule) => {
-          const pool = playersPerCategory[rule.category] ?? 0;
+          const pool = playersPerCategory[rule.rosterCategoryId] ?? 0;
           const fairFloor =
             teamCount > 0 ? Math.floor(pool / teamCount) : 0;
-          const fit = fitByCategory.get(rule.category);
+          const fit = fitByCategory.get(rule.rosterCategoryId);
           const remainder = fit?.remainderAfterEvenSplit ?? 0;
           const allocated =
             teamCount > 0 && fit ? teamCount * fit.fairCapPerTeam : 0;
@@ -76,13 +80,24 @@ export function SquadRulesForm({
             teamCount > 0 && pool > 0
               ? Math.ceil(pool / teamCount) * teamCount - pool
               : 0;
+          const fieldId = `cap-${rule.rosterCategoryId}`;
+          const fieldName = fieldId;
 
           return (
-            <div key={rule.category} className="space-y-2">
-              <Label htmlFor={rule.category}>{PLAYER_CATEGORY_LABEL[rule.category]}</Label>
+            <div key={rule.rosterCategoryId} className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Label htmlFor={fieldId} className="text-sm font-semibold tracking-tight">
+                  {rule.rosterCategoryName}
+                </Label>
+                <RosterCategoryPill
+                  name={rule.rosterCategoryName}
+                  colorHex={rule.rosterCategoryColorHex}
+                  className="max-w-max"
+                />
+              </div>
               <Input
-                id={rule.category}
-                name={rule.category}
+                id={fieldId}
+                name={fieldName}
                 type="number"
                 min={0}
                 max={50}
@@ -117,10 +132,8 @@ export function SquadRulesForm({
                   </strong>{" "}
                   still exceed that symmetric split:{" "}
                   <strong>recategorize {remainder}</strong>,{" "}
-                  <strong>
-                    add {addForEven} more here
-                  </strong>{" "}
-                  so the pool divides evenly by {teamCount}, or raise this cap manually.
+                  <strong>add {addForEven} more here</strong> so the pool divides evenly by{" "}
+                  {teamCount}, or raise this cap manually.
                 </p>
               ) : null}
             </div>
@@ -135,8 +148,8 @@ export function SquadRulesForm({
           {error}
         </p>
       ) : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Saving composition law…" : "Save squad caps"}
+      <Button type="submit" pending={pending} pendingLabel="Saving…">
+        Save squad caps
       </Button>
     </form>
   );

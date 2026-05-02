@@ -5,9 +5,10 @@ import Image from "next/image";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { RosterCategoryPill } from "@/features/roster/roster-category-pill";
 import { cn } from "@/lib/utils";
 import type { DraftPlayerDto, DraftTeamDto } from "@/types/draft";
-import { GENDER_LABEL, PLAYER_CATEGORY_LABEL } from "@/constants/player-labels";
+import { GENDER_LABEL } from "@/constants/player-labels";
 
 interface PlayerCardProps {
   player: DraftPlayerDto;
@@ -17,6 +18,10 @@ interface PlayerCardProps {
   nominateDisabled?: boolean;
   /** When true, never render nominate control (defense-in-depth for franchise-owner phone UI). */
   hideNominateControl?: boolean;
+  /** High-density tiles for commissioner boards with many nominees. */
+  compact?: boolean;
+  /** Commissioner presenting: enlarge portrait frame and deepen card presence. */
+  presentationHighlight?: boolean;
 }
 
 const badgeWrap =
@@ -29,6 +34,8 @@ export function PlayerCard({
   onNominate,
   nominateDisabled,
   hideNominateControl,
+  compact = false,
+  presentationHighlight = false,
 }: PlayerCardProps) {
   const picked = Boolean(player.hasConfirmedPick && player.assignedTeamId);
   const pending =
@@ -46,7 +53,9 @@ export function PlayerCard({
       <Card
         data-state={picked ? "picked" : pending ? "pending" : "available"}
         className={cn(
-          "relative flex h-full flex-col overflow-hidden border bg-card/80 p-3 shadow-sm backdrop-blur-sm transition-all duration-300 sm:p-4",
+          "relative flex h-full flex-col overflow-hidden border bg-card/80 shadow-sm backdrop-blur-sm transition-all duration-300",
+          presentationHighlight && !picked && !pending && "border-primary/20 bg-card shadow-md",
+          compact ? "border-border/70 p-2 sm:p-2.5" : "p-3 sm:p-4",
           picked &&
             "pointer-events-none scale-[0.99] opacity-65 grayscale border-muted",
           pending &&
@@ -67,20 +76,44 @@ export function PlayerCard({
             aria-hidden
           />
         )}
-        <div className="relative flex flex-1 flex-col gap-3">
-          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border">
+        <div className={cn("relative flex flex-1 flex-col", compact ? "gap-2" : "gap-3")}>
+          <div
+            className={cn(
+              "relative w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border",
+              presentationHighlight &&
+                "rounded-2xl bg-gradient-to-b from-muted to-muted/60 ring-2 ring-primary/30 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.35)] dark:shadow-[0_12px_48px_-12px_rgba(0,0,0,0.55)]",
+              compact
+                ? presentationHighlight
+                  ? "aspect-[5/6] min-h-[11.5rem] max-h-none sm:min-h-[13.5rem] sm:aspect-[4/5]"
+                  : "aspect-[5/6] max-h-40 sm:aspect-square sm:max-h-44"
+                : presentationHighlight
+                  ? "aspect-[3/4] min-h-[210px] sm:min-h-[272px]"
+                  : "aspect-[4/5]",
+            )}
+          >
             {player.photoUrl ? (
               <Image
                 src={player.photoUrl}
                 alt={player.name}
                 fill
-                sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
+                sizes={
+                  compact
+                    ? presentationHighlight
+                      ? "(max-width:640px) 45vw, 220px"
+                      : "(max-width:640px) 50vw, 160px"
+                    : presentationHighlight
+                      ? "(max-width:640px) 90vw, (max-width:1280px) 40vw, 320px"
+                      : "(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
+                }
                 unoptimized
                 className="object-contain object-center"
               />
             ) : (
               <div
-                className="flex h-full w-full items-center justify-center text-4xl font-semibold text-muted-foreground sm:text-5xl"
+                className={cn(
+                  "flex h-full w-full items-center justify-center font-semibold text-muted-foreground",
+                  compact ? "text-2xl sm:text-3xl" : "text-4xl sm:text-5xl",
+                )}
                 aria-hidden
               >
                 {player.name.slice(0, 1).toUpperCase()}
@@ -89,14 +122,43 @@ export function PlayerCard({
           </div>
 
           <div className="flex flex-col gap-2">
-            <p className="break-words text-center text-base font-semibold leading-snug tracking-tight sm:text-lg">
+            <p
+              className={cn(
+                "break-words text-center font-semibold leading-snug tracking-tight",
+                compact
+                  ? presentationHighlight
+                    ? "text-[15px] sm:text-base"
+                    : "text-sm sm:text-[15px]"
+                  : presentationHighlight
+                    ? "text-lg sm:text-xl"
+                    : "text-base sm:text-lg",
+              )}
+            >
               {player.name}
             </p>
-            <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
-              <Badge variant="secondary" className={cn(badgeWrap, "text-center")}>
-                {PLAYER_CATEGORY_LABEL[player.category]}
-              </Badge>
-              <Badge variant="outline" className={cn(badgeWrap, "text-center")}>
+            <div
+              className={cn(
+                "flex flex-wrap justify-center gap-1",
+                compact ? "gap-1" : "gap-1.5 sm:gap-2",
+              )}
+            >
+              <RosterCategoryPill
+                name={player.rosterCategoryName}
+                colorHex={player.rosterCategoryColorHex}
+                className={cn(
+                  badgeWrap,
+                  "justify-center text-center",
+                  compact && "min-h-6 py-0.5 text-[11px]",
+                )}
+              />
+              <Badge
+                variant="outline"
+                className={cn(
+                  badgeWrap,
+                  "text-center",
+                  compact && "min-h-6 py-0.5 text-[11px]",
+                )}
+              >
                 {GENDER_LABEL[player.gender]}
               </Badge>
               {player.isUnavailable ? (
@@ -144,7 +206,8 @@ export function PlayerCard({
               disabled={nominateDisabled}
               onClick={onNominate}
               className={cn(
-                "mt-auto min-h-12 rounded-lg bg-primary px-4 py-3 text-center text-base font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-14 sm:text-lg",
+                "mt-auto rounded-lg bg-primary text-center font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40",
+                compact ? "min-h-9 px-2 py-2 text-xs sm:text-[13px]" : "min-h-12 px-4 py-3 text-base sm:min-h-14 sm:text-lg",
               )}
             >
               Pick this player

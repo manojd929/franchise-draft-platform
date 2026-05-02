@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { syncUserProfile } from "@/lib/auth/profile";
+import { ROUTES } from "@/constants/app";
+import { sanitizeNextPath } from "@/lib/navigation/sanitize-next-path";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const nextPath = searchParams.get("next") ?? "/dashboard";
+  const nextPath = sanitizeNextPath(searchParams.get("next"), ROUTES.dashboard);
 
   if (code) {
     const supabase = await createServerSupabaseClient();

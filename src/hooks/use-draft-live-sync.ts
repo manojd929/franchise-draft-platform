@@ -5,6 +5,11 @@ import { useCallback, useEffect, useRef } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { DraftSnapshotDto } from "@/types/draft";
 
+/** Polling cadence when picks are live (or paused mid-auction). */
+export const DRAFT_POLL_INTERVAL_FAST_MS = 1150;
+/** Polling when the board is idle (setup, locked, completed). */
+export const DRAFT_POLL_INTERVAL_SLOW_MS = 4600;
+
 async function fetchSnapshot(slug: string): Promise<DraftSnapshotDto | null> {
   const response = await fetch(`/api/tournaments/${slug}/snapshot`, {
     cache: "no-store",
@@ -13,16 +18,33 @@ async function fetchSnapshot(slug: string): Promise<DraftSnapshotDto | null> {
   return response.json() as Promise<DraftSnapshotDto>;
 }
 
+export interface DraftLiveSyncOptions {
+  enabled?: boolean;
+  /** Faster polling for LIVE/PAUSED auctions; slower otherwise. */
+  accelerated?: boolean;
+}
+
 /**
- * Short polling plus optional Supabase Realtime when `Tournament` replication is enabled.
+ * Polling plus optional Supabase Realtime when `Tournament` replication is enabled.
  */
 export function useDraftLiveSync(
   slug: string,
   tournamentId: string | undefined,
   onUpdate: (snapshot: DraftSnapshotDto) => void,
-  pollMs = 3500,
-  enabled = true,
+  options: DraftLiveSyncOptions = {},
 ) {
+  const { enabled = true, accelerated = false } = options;
+
+  const pollBaseMs = accelerated
+    ? DRAFT_POLL_INTERVAL_FAST_MS
+    : DRAFT_POLL_INTERVAL_SLOW_MS;
+
+  const jitterRef = useRef(0);
+  useEffect(() => {
+    const span = accelerated ? 180 : 520;
+    jitterRef.current = Math.floor(span * Math.random());
+  }, [accelerated]);
+
   const onUpdateRef = useRef(onUpdate);
 
   useEffect(() => {
@@ -72,11 +94,12 @@ export function useDraftLiveSync(
 
   useEffect(() => {
     if (!enabled) return undefined;
+    const pollMs = pollBaseMs + jitterRef.current;
     const id = window.setInterval(() => {
       if (document.visibilityState === "visible") void refresh();
     }, pollMs);
     return () => window.clearInterval(id);
-  }, [enabled, pollMs, refresh]);
+  }, [enabled, pollBaseMs, refresh]);
 
   useEffect(() => {
     if (!enabled) return undefined;

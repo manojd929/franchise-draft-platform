@@ -41,6 +41,21 @@ import {
   updateTeamSchema,
   updateTournamentSchema,
 } from "@/validations/tournament";
+import {
+  archiveRosterCategorySchema,
+  createRosterCategorySchema,
+  moveRosterCategoryOrderSchema,
+  restoreRosterCategorySchema,
+  updateRosterCategorySchema,
+} from "@/validations/roster-category";
+
+import {
+  archiveRosterCategory,
+  createRosterCategory,
+  moveRosterCategoryDisplayOrder,
+  restoreRosterCategory,
+  updateRosterCategory,
+} from "@/services/roster-category-service";
 
 export type TournamentActionResult =
   | { ok: true; slug?: string; email?: string }
@@ -51,6 +66,16 @@ function handle(err: unknown): TournamentActionResult {
     return { ok: false, error: err.message };
   }
   return { ok: false, error: "Unexpected error. Try again." };
+}
+
+function revalidateRosterGroupDependentPaths(slug: string): void {
+  revalidatePath(`/tournament/${slug}`, "layout");
+  revalidatePath(`/tournament/${slug}/categories`);
+  revalidatePath(`/tournament/${slug}/players`);
+  revalidatePath(`/tournament/${slug}/rules`);
+  revalidatePath(`/tournament/${slug}/draft`);
+  revalidatePath(`/tournament/${slug}/admin`);
+  revalidatePath(`/tournament/${slug}/teams`);
 }
 
 export async function updateTournamentAction(
@@ -172,8 +197,11 @@ export async function createPlayerAction(
     if (!parsed.success) return { ok: false, error: "Invalid player details." };
     const user = await requireSessionUser();
     await createPlayer(user.id, parsed.data);
-    revalidatePath(`/tournament/${parsed.data.tournamentSlug}`, "layout");
-    return { ok: true, slug: parsed.data.tournamentSlug };
+    const slug = parsed.data.tournamentSlug;
+    revalidatePath(`/tournament/${slug}`, "layout");
+    revalidatePath(`/tournament/${slug}/players`);
+    revalidatePath(`/tournament/${slug}/categories`);
+    return { ok: true, slug };
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
       return { ok: false, error: "Unauthorized" };
@@ -195,6 +223,7 @@ export async function updatePlayerAction(
     revalidatePath(`/tournament/${slug}/players`);
     revalidatePath(`/tournament/${slug}/teams`);
     revalidatePath(`/tournament/${slug}/rules`);
+    revalidatePath(`/tournament/${slug}/categories`);
     return { ok: true, slug };
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
@@ -341,6 +370,101 @@ export async function revokeFranchiseLoginFromPlayerAction(
     revalidatePath(`/tournament/${slug}/teams`);
     revalidatePath(`/tournament/${slug}/players`);
     return { ok: true };
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return { ok: false, error: "Unauthorized" };
+    }
+    return handle(e);
+  }
+}
+
+export async function createRosterCategoryAction(input: unknown): Promise<TournamentActionResult> {
+  try {
+    const parsed = createRosterCategorySchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: "Invalid roster group." };
+    }
+    const user = await requireSessionUser();
+    await createRosterCategory(user.id, parsed.data);
+    const slug = parsed.data.tournamentSlug;
+    revalidateRosterGroupDependentPaths(slug);
+    return { ok: true, slug };
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return { ok: false, error: "Unauthorized" };
+    }
+    return handle(e);
+  }
+}
+
+export async function updateRosterCategoryAction(input: unknown): Promise<TournamentActionResult> {
+  try {
+    const parsed = updateRosterCategorySchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: "Invalid roster group." };
+    }
+    const user = await requireSessionUser();
+    await updateRosterCategory(user.id, parsed.data);
+    const slug = parsed.data.tournamentSlug;
+    revalidateRosterGroupDependentPaths(slug);
+    return { ok: true, slug };
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return { ok: false, error: "Unauthorized" };
+    }
+    return handle(e);
+  }
+}
+
+export async function archiveRosterCategoryAction(input: unknown): Promise<TournamentActionResult> {
+  try {
+    const parsed = archiveRosterCategorySchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: "Invalid roster group." };
+    }
+    const user = await requireSessionUser();
+    await archiveRosterCategory(user.id, parsed.data);
+    const slug = parsed.data.tournamentSlug;
+    revalidateRosterGroupDependentPaths(slug);
+    return { ok: true, slug };
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return { ok: false, error: "Unauthorized" };
+    }
+    return handle(e);
+  }
+}
+
+export async function restoreRosterCategoryAction(input: unknown): Promise<TournamentActionResult> {
+  try {
+    const parsed = restoreRosterCategorySchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: "Invalid roster group." };
+    }
+    const user = await requireSessionUser();
+    await restoreRosterCategory(user.id, parsed.data);
+    const slug = parsed.data.tournamentSlug;
+    revalidateRosterGroupDependentPaths(slug);
+    return { ok: true, slug };
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return { ok: false, error: "Unauthorized" };
+    }
+    return handle(e);
+  }
+}
+
+export async function moveRosterCategoryOrderAction(input: unknown): Promise<TournamentActionResult> {
+  try {
+    const parsed = moveRosterCategoryOrderSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: "Invalid roster reorder request." };
+    }
+    const user = await requireSessionUser();
+    await moveRosterCategoryDisplayOrder(user.id, parsed.data);
+    const slug = parsed.data.tournamentSlug;
+    revalidateRosterGroupDependentPaths(slug);
+    return { ok: true, slug };
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
       return { ok: false, error: "Unauthorized" };

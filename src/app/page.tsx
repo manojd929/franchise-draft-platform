@@ -60,7 +60,7 @@ export default function LandingPage() {
           {[
             {
               title: "Easy for the room",
-              body: "Big TV page shows whose turn it is and the last player who joined a team.",
+              body: "Live roster board shows every franchise draft, the active round, who is on the clock, and the latest pick — built for projectors.",
             },
             {
               title: "Fair order",

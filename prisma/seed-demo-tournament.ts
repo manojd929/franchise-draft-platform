@@ -26,7 +26,7 @@ import "dotenv/config";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import { Gender, PlayerCategory, UserRole } from "@/generated/prisma/enums";
+import { Gender, UserRole } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import {
   createTeam,
@@ -185,14 +185,17 @@ async function ensureAuthUserWithProfile(params: {
   return id;
 }
 
-async function seedPoolPlayers(tournamentId: string): Promise<void> {
+async function seedPoolPlayers(
+  tournamentId: string,
+  rosterCategoryId: string,
+): Promise<void> {
   await prisma.player.createMany({
     data: Array.from({ length: POOL_PLAYER_COUNT }, (_, index) => {
       const n = String(index + 1).padStart(2, "0");
       return {
         tournamentId,
         name: `Pool Player ${n}`,
-        category: PlayerCategory.MEN_INTERMEDIATE,
+        rosterCategoryId,
         gender: Gender.MALE,
       };
     }),
@@ -270,8 +273,16 @@ async function main(): Promise<void> {
 
   await syncOwnerPlayersForTournament(tournament.id);
 
+  const intermediateCategory = await prisma.rosterCategory.findFirst({
+    where: { tournamentId: tournament.id, stableKey: "MEN_INTERMEDIATE" },
+    select: { id: true },
+  });
+  if (!intermediateCategory) {
+    throw new Error("Men Intermediate roster category seed missing.");
+  }
+
   console.info(`Adding ${String(POOL_PLAYER_COUNT)} men's intermediate players…`);
-  await seedPoolPlayers(tournament.id);
+  await seedPoolPlayers(tournament.id, intermediateCategory.id);
 
   await reconcileSquadRulesForTournament(tournament.id);
 

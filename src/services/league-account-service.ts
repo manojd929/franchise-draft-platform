@@ -1,6 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
 import { DraftPhase, UserRole } from "@/generated/prisma/enums";
+import {
+  ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE,
+  leagueOwnerAdminProvisioningUserMessage,
+} from "@/lib/errors/safe-user-feedback";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -42,9 +46,7 @@ export async function createLeagueOwnerAccount(
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url?.trim() || !serviceKey?.trim()) {
-    throw new TournamentServiceError(
-      "Server missing SUPABASE_SERVICE_ROLE_KEY. Add it to .env so commissioners can create owner accounts here.",
-    );
+    throw new TournamentServiceError(ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE);
   }
 
   const adminClient = createClient(url, serviceKey, {
@@ -69,7 +71,7 @@ export async function createLeagueOwnerAccount(
   });
 
   if (error) {
-    throw new TournamentServiceError(error.message);
+    throw new TournamentServiceError(leagueOwnerAdminProvisioningUserMessage(error.message));
   }
 
   const authUser = data.user;

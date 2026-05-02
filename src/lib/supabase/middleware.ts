@@ -4,6 +4,21 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ROUTES } from "@/constants/app";
 import { sanitizeNextPath } from "@/lib/navigation/sanitize-next-path";
 
+const PRIVATE_NO_STORE = "private, no-store, max-age=0";
+
+/** Supabase rotates cookies during `getUser()`; redirects must reuse them or the browser keeps stale tokens. */
+function redirectPreservingSessionCookies(
+  sessionResponse: NextResponse,
+  url: URL,
+): NextResponse {
+  const redirect = NextResponse.redirect(url);
+  for (const cookie of sessionResponse.cookies.getAll()) {
+    redirect.cookies.set(cookie);
+  }
+  redirect.headers.set("Cache-Control", PRIVATE_NO_STORE);
+  return redirect;
+}
+
 function isProtectedPath(pathname: string): boolean {
   if (
     pathname === "/" ||
@@ -55,26 +70,43 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
+  const pathname = request.nextUrl.pathname;
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user && request.nextUrl.pathname === ROUTES.login) {
-    const destination = sanitizeNextPath(
-      request.nextUrl.searchParams.get("next"),
-      ROUTES.dashboard,
-    );
+  if (
+    user != null ||
+    pathname.startsWith(ROUTES.login) ||
+    pathname.startsWith("/auth") ||
+    isProtectedPath(pathname)
+  ) {
+    supabaseResponse.headers.set("Cache-Control", PRIVATE_NO_STORE);
+  }
+
+  if (
+    user &&
+    (pathname === ROUTES.login || pathname === ROUTES.home)
+  ) {
+    const destination =
+      pathname === ROUTES.login
+        ? sanitizeNextPath(
+            request.nextUrl.searchParams.get("next"),
+            ROUTES.dashboard,
+          )
+        : ROUTES.dashboard;
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = destination;
     redirectUrl.search = "";
-    return NextResponse.redirect(redirectUrl);
+    return redirectPreservingSessionCookies(supabaseResponse, redirectUrl);
   }
 
-  if (!user && isProtectedPath(request.nextUrl.pathname)) {
+  if (!user && isProtectedPath(pathname)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
+    return redirectPreservingSessionCookies(supabaseResponse, redirectUrl);
   }
 
   return supabaseResponse;

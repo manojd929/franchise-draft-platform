@@ -1,29 +1,35 @@
 import { describe, expect, it } from "vitest";
 
-import { PlayerCategory } from "@/generated/prisma/enums";
-
 import {
   computePerTeamCategoryCaps,
-  SQUAD_RULE_CATEGORY_ORDER,
-  sortBySquadRuleCategoryOrder,
+  sortSquadRulesByRosterCategoryOrder,
 } from "./compute-per-team-caps";
 import { validateSquadRulesAgainstRoster } from "./validate-squad-rules-against-roster";
 
-describe("sortBySquadRuleCategoryOrder", () => {
-  it("orders beginner → intermediate → advanced → women", () => {
+const CAT_BEGINNER = "00000000-0000-4000-8000-000000000001";
+const CAT_INTERMEDIATE = "00000000-0000-4000-8000-000000000002";
+const CAT_ADVANCED = "00000000-0000-4000-8000-000000000003";
+const CAT_WOMEN = "00000000-0000-4000-8000-000000000004";
+
+const categoryOrder = [CAT_BEGINNER, CAT_INTERMEDIATE, CAT_ADVANCED, CAT_WOMEN];
+
+const labels: Record<string, string> = {
+  [CAT_BEGINNER]: "Men Beginner",
+  [CAT_INTERMEDIATE]: "Men Intermediate",
+  [CAT_ADVANCED]: "Men Advanced",
+  [CAT_WOMEN]: "Women",
+};
+
+describe("sortSquadRulesByRosterCategoryOrder", () => {
+  it("orders rows by commissioner category ladder", () => {
     const mixed = [
-      { category: PlayerCategory.MEN_ADVANCED, maxCount: 5 },
-      { category: PlayerCategory.WOMEN, maxCount: 2 },
-      { category: PlayerCategory.MEN_BEGINNER, maxCount: 10 },
-      { category: PlayerCategory.MEN_INTERMEDIATE, maxCount: 2 },
+      { rosterCategoryId: CAT_ADVANCED, maxCount: 5 },
+      { rosterCategoryId: CAT_WOMEN, maxCount: 2 },
+      { rosterCategoryId: CAT_BEGINNER, maxCount: 10 },
+      { rosterCategoryId: CAT_INTERMEDIATE, maxCount: 2 },
     ];
-    const sorted = sortBySquadRuleCategoryOrder(mixed);
-    expect(sorted.map((r) => r.category)).toEqual([
-      PlayerCategory.MEN_BEGINNER,
-      PlayerCategory.MEN_INTERMEDIATE,
-      PlayerCategory.MEN_ADVANCED,
-      PlayerCategory.WOMEN,
-    ]);
+    const sorted = sortSquadRulesByRosterCategoryOrder(mixed, categoryOrder);
+    expect(sorted.map((r) => r.rosterCategoryId)).toEqual(categoryOrder);
   });
 });
 
@@ -31,29 +37,31 @@ describe("computePerTeamCategoryCaps", () => {
   it("uses fair floor(pool / teams) per category", () => {
     const caps = computePerTeamCategoryCaps({
       teamCount: 4,
-      playersPerCategory: { [PlayerCategory.MEN_INTERMEDIATE]: 50 },
+      categoryOrder,
+      playersPerCategory: { [CAT_INTERMEDIATE]: 50 },
     });
-    expect(caps[PlayerCategory.MEN_INTERMEDIATE]).toBe(12);
-    expect(caps[PlayerCategory.MEN_BEGINNER]).toBe(0);
+    expect(caps[CAT_INTERMEDIATE]).toBe(12);
+    expect(caps[CAT_BEGINNER]).toBe(0);
   });
 
   it("returns zeros when there are no teams", () => {
     const caps = computePerTeamCategoryCaps({
       teamCount: 0,
-      playersPerCategory: { [PlayerCategory.MEN_INTERMEDIATE]: 99 },
+      categoryOrder,
+      playersPerCategory: { [CAT_INTERMEDIATE]: 99 },
     });
-    expect(caps[PlayerCategory.MEN_INTERMEDIATE]).toBe(0);
+    expect(caps[CAT_INTERMEDIATE]).toBe(0);
   });
 });
 
 function fourCategoryPools(
-  partial: Partial<Record<PlayerCategory, number>>,
-): Partial<Record<PlayerCategory, number>> {
-  const base: Partial<Record<PlayerCategory, number>> = {
-    [PlayerCategory.MEN_BEGINNER]: 0,
-    [PlayerCategory.MEN_INTERMEDIATE]: 0,
-    [PlayerCategory.MEN_ADVANCED]: 0,
-    [PlayerCategory.WOMEN]: 0,
+  partial: Partial<Record<string, number>>,
+): Partial<Record<string, number>> {
+  const base: Partial<Record<string, number>> = {
+    [CAT_BEGINNER]: 0,
+    [CAT_INTERMEDIATE]: 0,
+    [CAT_ADVANCED]: 0,
+    [CAT_WOMEN]: 0,
   };
   return { ...base, ...partial };
 }
@@ -61,15 +69,16 @@ function fourCategoryPools(
 describe("validateSquadRulesAgainstRoster", () => {
   it("fails when snake draft needs more players than on roster (default)", () => {
     const playersPerCategory = fourCategoryPools({
-      [PlayerCategory.MEN_INTERMEDIATE]: 30,
+      [CAT_INTERMEDIATE]: 30,
     });
     const caps = computePerTeamCategoryCaps({
       teamCount: 4,
+      categoryOrder,
       playersPerCategory,
     });
-    const rules = SQUAD_RULE_CATEGORY_ORDER.map((category) => ({
-      category,
-      maxCount: caps[category],
+    const rules = categoryOrder.map((rosterCategoryId) => ({
+      rosterCategoryId,
+      maxCount: caps[rosterCategoryId] ?? 0,
     }));
 
     const result = validateSquadRulesAgainstRoster({
@@ -77,6 +86,7 @@ describe("validateSquadRulesAgainstRoster", () => {
       picksPerTeam: 10,
       totalPlayers: 30,
       playersPerCategory,
+      categoryLabels: labels,
       rules,
     });
 
@@ -89,15 +99,16 @@ describe("validateSquadRulesAgainstRoster", () => {
 
   it("passes draft-length check when requireDraftSlotsVsRoster is false (auto-set)", () => {
     const playersPerCategory = fourCategoryPools({
-      [PlayerCategory.MEN_INTERMEDIATE]: 30,
+      [CAT_INTERMEDIATE]: 30,
     });
     const caps = computePerTeamCategoryCaps({
       teamCount: 4,
+      categoryOrder,
       playersPerCategory,
     });
-    const rules = SQUAD_RULE_CATEGORY_ORDER.map((category) => ({
-      category,
-      maxCount: caps[category],
+    const rules = categoryOrder.map((rosterCategoryId) => ({
+      rosterCategoryId,
+      maxCount: caps[rosterCategoryId] ?? 0,
     }));
 
     const result = validateSquadRulesAgainstRoster({
@@ -105,6 +116,7 @@ describe("validateSquadRulesAgainstRoster", () => {
       picksPerTeam: 10,
       totalPlayers: 30,
       playersPerCategory,
+      categoryLabels: labels,
       rules,
       requireDraftSlotsVsRoster: false,
     });
@@ -114,31 +126,33 @@ describe("validateSquadRulesAgainstRoster", () => {
 
   it("fair-share rules always satisfy per-category pool checks", () => {
     const playersPerCategory = fourCategoryPools({
-      [PlayerCategory.MEN_BEGINNER]: 17,
-      [PlayerCategory.MEN_INTERMEDIATE]: 50,
-      [PlayerCategory.MEN_ADVANCED]: 14,
-      [PlayerCategory.WOMEN]: 9,
+      [CAT_BEGINNER]: 17,
+      [CAT_INTERMEDIATE]: 50,
+      [CAT_ADVANCED]: 14,
+      [CAT_WOMEN]: 9,
     });
     const teamCount = 4;
     const caps = computePerTeamCategoryCaps({
       teamCount,
+      categoryOrder,
       playersPerCategory,
     });
-    const rules = SQUAD_RULE_CATEGORY_ORDER.map((category) => ({
-      category,
-      maxCount: caps[category],
+    const rules = categoryOrder.map((rosterCategoryId) => ({
+      rosterCategoryId,
+      maxCount: caps[rosterCategoryId] ?? 0,
     }));
     const totalPlayers =
-      (playersPerCategory[PlayerCategory.MEN_BEGINNER] ?? 0) +
-      (playersPerCategory[PlayerCategory.MEN_INTERMEDIATE] ?? 0) +
-      (playersPerCategory[PlayerCategory.MEN_ADVANCED] ?? 0) +
-      (playersPerCategory[PlayerCategory.WOMEN] ?? 0);
+      (playersPerCategory[CAT_BEGINNER] ?? 0) +
+      (playersPerCategory[CAT_INTERMEDIATE] ?? 0) +
+      (playersPerCategory[CAT_ADVANCED] ?? 0) +
+      (playersPerCategory[CAT_WOMEN] ?? 0);
 
     const result = validateSquadRulesAgainstRoster({
       teamCount,
       picksPerTeam: 10,
       totalPlayers,
       playersPerCategory,
+      categoryLabels: labels,
       rules,
       requireDraftSlotsVsRoster: false,
     });

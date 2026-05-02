@@ -8,61 +8,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ROUTES } from "@/constants/app";
 import { TournamentBrandingForm } from "@/features/tournaments/tournament-branding-form";
 import { getSessionUser } from "@/lib/auth/session";
 import { getTournamentBySlug } from "@/lib/data/tournament-access";
+import { tournamentHubCardsForViewer } from "@/lib/navigation/tournament-nav-links";
 import { isLeagueImageUploadConfigured } from "@/lib/uploads/league-image-blob-env";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
-
-const hubLinks: Array<{
-  href: (slug: string) => string;
-  title: string;
-  description: string;
-  primary?: boolean;
-}> = [
-  {
-    href: ROUTES.admin,
-    title: "Run the auction",
-    description: "Start, pause, go to the next team, and say yes to each pick.",
-    primary: true,
-  },
-  {
-    href: ROUTES.tv,
-    title: "Show on a TV",
-    description: "Big, simple screen for the room. Open this on the projector or TV.",
-    primary: true,
-  },
-  {
-    href: ROUTES.draft,
-    title: "Auction board",
-    description: "See all player photos, filters, and whose turn it is.",
-  },
-  {
-    href: ROUTES.owner,
-    title: "Team owner phone",
-    description: "For the person who is picking on their phone.",
-  },
-  {
-    href: ROUTES.teams,
-    title: "Teams",
-    description: "Names, colors, logos, and owners.",
-  },
-  {
-    href: ROUTES.players,
-    title: "Players",
-    description: "Add people, group, and photos.",
-  },
-  {
-    href: ROUTES.rules,
-    title: "Rules",
-    description: "How many picks each team can make in each group.",
-  },
-];
 
 export default async function TournamentHubPage({ params }: PageProps) {
   const { slug } = await params;
@@ -72,7 +27,9 @@ export default async function TournamentHubPage({ params }: PageProps) {
   }
 
   const user = await getSessionUser();
-  const canEditBranding = Boolean(user && user.id === tournament.createdById);
+  const isCommissioner = Boolean(user && user.id === tournament.createdById);
+  const canEditBranding = isCommissioner;
+  const hubCards = tournamentHubCardsForViewer({ isCommissioner });
   const uploadsEnabled = isLeagueImageUploadConfigured();
 
   return (
@@ -93,15 +50,26 @@ export default async function TournamentHubPage({ params }: PageProps) {
           Choose a screen
         </h2>
         <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-          You can set up teams and players first. When it is time for the auction, use{" "}
-          <strong className="font-semibold text-foreground">Run the auction</strong> on the
-          computer and <strong className="font-semibold text-foreground">Show on a TV</strong>{" "}
-          on the big screen.
+          {isCommissioner ? (
+            <>
+              Set up rosters before go-live day. Drive the auction from{" "}
+              <strong className="font-semibold text-foreground">Run the auction</strong>; put{" "}
+              <strong className="font-semibold text-foreground">Live roster board</strong> up for
+              the room.
+            </>
+          ) : (
+            <>
+              You can browse setup pages now. Franchise owners nominate from{" "}
+              <strong className="font-semibold text-foreground">Owner phone</strong> /{" "}
+              <strong className="font-semibold text-foreground">Auction board</strong> cards when they
+              are signed in — the commissioner works from Manage auction instead.
+            </>
+          )}
         </p>
       </header>
 
       <ul className="grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
-        {hubLinks.map((item) => (
+        {hubCards.map((item) => (
           <li key={item.title}>
             <Card
               className={cn(

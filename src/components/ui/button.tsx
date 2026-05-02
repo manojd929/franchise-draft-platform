@@ -1,6 +1,8 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
+import type { ReactNode } from "react"
 
+import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
@@ -40,18 +42,52 @@ const buttonVariants = cva(
   }
 )
 
+type ButtonPendingProps = {
+  pending?: boolean
+  /** Shown beside the spinner while `pending` is true (falls back to `children`). */
+  pendingLabel?: ReactNode
+}
+
 function Button({
   className,
   variant = "default",
   size = "default",
+  pending = false,
+  pendingLabel,
+  disabled,
+  children,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants> & ButtonPendingProps) {
+  const isBusy = pending
+  const spinnerBox =
+    size === "xs" || size === "icon-xs"
+      ? "size-3"
+      : size === "sm" || size === "icon-sm"
+        ? "size-3.5"
+        : size === "lg" || size === "icon-lg"
+          ? "size-4"
+          : "size-3.5"
+
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      disabled={disabled || isBusy}
+      aria-busy={isBusy || undefined}
+      className={cn(
+        buttonVariants({ variant, size, className }),
+        isBusy && "cursor-wait gap-2",
+      )}
       {...props}
-    />
+    >
+      {isBusy ? (
+        <>
+          <Spinner className={cn(spinnerBox)} />
+          <span>{pendingLabel ?? children}</span>
+        </>
+      ) : (
+        children
+      )}
+    </ButtonPrimitive>
   )
 }
 

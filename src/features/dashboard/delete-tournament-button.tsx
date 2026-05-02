@@ -87,13 +87,14 @@ export function DeleteTournamentButton({
               type="button"
               variant="destructive"
               className="min-h-11 touch-manipulation"
-              disabled={busy}
+              pending={busy}
+              pendingLabel="Deleting…"
               onClick={(event) => {
                 event.preventDefault();
                 void confirmDelete();
               }}
             >
-              {busy ? "Deleting…" : "Delete"}
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -85,10 +85,10 @@ export function RemoveTeamOwnerButton({
           <AlertDialogHeader>
             <AlertDialogTitle>Remove franchise owner?</AlertDialogTitle>
             <AlertDialogDescription className="text-left">
-              <span className="font-medium text-foreground">{team.name}</span> will have no owner
-              login until you assign someone again. Sync clears auto-created roster stubs when needed.
-              If they had player-first login only here and no other franchises rely on them, their
-              Supabase credentials are removed automatically.
+              <span className="font-medium text-foreground">{team.name}</span> will have no owner login until
+              you assign someone again. Sync clears auto-created roster stubs when needed. If someone only had
+              login access through their roster stub here—and no other franchises rely on them—their sign-in
+              credentials are cleared automatically when it is safe to do so.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error ? (
@@ -104,13 +104,14 @@ export function RemoveTeamOwnerButton({
               type="button"
               variant="destructive"
               className="min-h-11 touch-manipulation"
-              disabled={busy}
+              pending={busy}
+              pendingLabel="Removing…"
               onClick={(event) => {
                 event.preventDefault();
                 void confirmRemove();
               }}
             >
-              {busy ? "Removing…" : "Remove owner"}
+              Remove owner
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,7 +1,7 @@
-import type { PlayerCategory } from "@/generated/prisma/enums";
-
 export interface PickLimitsCategoryFitRow {
-  category: PlayerCategory;
+  rosterCategoryId: string;
+  rosterCategoryName: string;
+  rosterCategoryColorHex: string | null;
   pool: number;
   fairCapPerTeam: number;
   remainderAfterEvenSplit: number;
@@ -38,8 +38,8 @@ export function PickLimitsGuidance({
           How pick limits relate to your roster
         </h3>
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Pick limits cap how many players each franchise may take from each group (Beginner,
-          Intermediate, Advanced, Women). They do not change how many turns each team gets in the
+          Pick limits cap how many players each franchise may take from each roster group. They do not
+          change how many turns each team gets in the
           snake draft. That comes from{" "}
           <strong className="font-medium text-foreground">picks each team makes</strong> set when the
           tournament was created.

@@ -5,6 +5,11 @@ import { notFound } from "next/navigation";
 
 import { ROUTES } from "@/constants/app";
 import { getTournamentBySlug } from "@/lib/data/tournament-access";
+import {
+  tournamentChromeNavLinks,
+  type TournamentChromeNavViewer,
+} from "@/lib/navigation/tournament-nav-links";
+import { getSessionUser } from "@/lib/auth/session";
 
 interface TournamentLayoutProps {
   children: React.ReactNode;
@@ -19,20 +24,14 @@ export default async function TournamentLayout({
   const tournament = await getTournamentBySlug(slug);
   if (!tournament) notFound();
 
-  const links = [
-    { href: ROUTES.tournament(slug), label: "Home" },
-    { href: ROUTES.players(slug), label: "Players" },
-    { href: ROUTES.teams(slug), label: "Teams" },
-    { href: ROUTES.rules(slug), label: "Rules" },
-    { href: ROUTES.admin(slug), label: "Manage auction" },
-    { href: ROUTES.draft(slug), label: "Auction screen" },
-    { href: ROUTES.tv(slug), label: "Big screen" },
-    { href: ROUTES.owner(slug), label: "Owner" },
-  ];
+  const user = await getSessionUser();
+  const chromeViewer: TournamentChromeNavViewer =
+    user?.id === tournament.createdById ? "commissioner" : "participant";
+  const links = tournamentChromeNavLinks(slug, chromeViewer);
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-40 border-b border-border/70 bg-card/85 backdrop-blur-md supports-[backdrop-filter]:bg-card/75">
+      <div className="border-b border-border/70 bg-card">
         {tournament.colorHex ? (
           <div
             className="h-1 w-full"

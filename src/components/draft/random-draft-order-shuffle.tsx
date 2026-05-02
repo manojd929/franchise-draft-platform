@@ -17,6 +17,12 @@ interface RandomDraftOrderShuffleProps {
   tournamentSlug: string;
   teams: RandomDraftOrderTeam[];
   className?: string;
+  /**
+   * When false, shuffle is unavailable (auction started, order locked). Still requires teams client-side.
+   */
+  allowShuffle?: boolean;
+  /** Shown when `allowShuffle` is false (tooltip / accessibility). Ignored while teams array is empty. */
+  unavailableReason?: string;
 }
 
 function shuffleTeams(list: RandomDraftOrderTeam[]): RandomDraftOrderTeam[] {
@@ -34,6 +40,8 @@ export function RandomDraftOrderShuffle({
   tournamentSlug,
   teams,
   className,
+  allowShuffle = true,
+  unavailableReason = "Shuffle is unavailable right now.",
 }: RandomDraftOrderShuffleProps) {
   const [shuffling, setShuffling] = useState(false);
   const [displayOrder, setDisplayOrder] = useState<RandomDraftOrderTeam[]>([]);
@@ -91,20 +99,30 @@ export function RandomDraftOrderShuffle({
   }, [teams, tournamentSlug]);
 
   const empty = teams.length === 0;
+  const blockedByFlow = !allowShuffle;
+  const disabled = empty || blockedByFlow;
   const chips = shuffling ? displayOrder : teams;
+
+  const disabledTitle = empty
+    ? "Add at least one franchise before shuffling."
+    : blockedByFlow
+      ? unavailableReason
+      : undefined;
 
   return (
     <>
       <Button
         type="button"
         variant="secondary"
-        disabled={shuffling || empty}
+        disabled={disabled}
+        pending={shuffling}
+        pendingLabel="Shuffling…"
         aria-busy={shuffling}
-        title={empty ? "Create teams first" : undefined}
+        title={disabledTitle}
         className={cn("min-h-11 text-sm sm:text-xs sm:uppercase sm:tracking-wide", className)}
         onClick={() => void run()}
       >
-        {shuffling ? "Shuffling…" : "Shuffle pick order"}
+        Shuffle pick order
       </Button>
       {shuffling ? (
         <div

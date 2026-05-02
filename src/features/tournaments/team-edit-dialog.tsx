@@ -148,8 +148,8 @@ export function TeamEditDialog({
           <DialogClose render={<Button type="button" variant="outline" disabled={isSubmitting} />}>
             Cancel
           </DialogClose>
-          <Button type="button" disabled={isSubmitting} onClick={() => void handleSave()}>
-            {isSubmitting ? "Saving…" : "Save"}
+          <Button type="button" pending={isSubmitting} pendingLabel="Saving…" onClick={() => void handleSave()}>
+            Save
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -7,6 +7,7 @@ import { Buffer } from "node:buffer";
 import { put } from "@vercel/blob";
 
 import { requireSessionUser } from "@/lib/auth/session";
+import { ADMIN_IMAGE_UPLOAD_UNAVAILABLE } from "@/lib/errors/safe-user-feedback";
 import { normalizeLeagueImageForBlob } from "@/lib/uploads/normalize-league-image";
 import {
   assertTournamentOwnership,
@@ -67,8 +68,7 @@ export async function uploadLeagueImageAction(
     if (!token) {
       return {
         ok: false,
-        error:
-          "Uploads need BLOB_READ_WRITE_TOKEN from Vercel Blob (Storage → Create → copy token). Paste an image URL instead.",
+        error: ADMIN_IMAGE_UPLOAD_UNAVAILABLE,
       };
     }
 

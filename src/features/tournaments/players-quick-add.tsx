@@ -9,23 +9,41 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createPlayerAction } from "@/features/tournaments/actions";
 import { ImageUploadOrUrlField } from "@/features/uploads/image-upload-or-url-field";
+import { cn } from "@/lib/utils";
+
+export interface RosterCategorySelectOption {
+  id: string;
+  name: string;
+}
 
 interface PlayersQuickAddProps {
   tournamentSlug: string;
   uploadsEnabled: boolean;
+  selectableCategories: RosterCategorySelectOption[];
+  defaultRosterCategoryId: string;
+  /** Default `card` embeds bordered panel used on legacy pages; `plain` strips chrome for drawers. */
+  variant?: "card" | "plain";
+  onCreated?: () => void;
 }
 
-export function PlayersQuickAdd({ tournamentSlug, uploadsEnabled }: PlayersQuickAddProps) {
+export function PlayersQuickAdd({
+  tournamentSlug,
+  uploadsEnabled,
+  selectableCategories,
+  defaultRosterCategoryId,
+  variant = "card",
+  onCreated,
+}: PlayersQuickAddProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [photoUrl, setPhotoUrl] = useState("");
+  const [rosterCategoryId, setRosterCategoryId] = useState(defaultRosterCategoryId);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const form = event.currentTarget;
     const formData = new FormData(form);
-    const category = String(formData.get("category") ?? "");
     const gender = String(formData.get("gender") ?? "");
     setError(null);
     setIsSubmitting(true);
@@ -34,7 +52,7 @@ export function PlayersQuickAdd({ tournamentSlug, uploadsEnabled }: PlayersQuick
         tournamentSlug,
         name: String(formData.get("name") ?? ""),
         photoUrl: photoUrl.trim() || undefined,
-        category: category as "MEN_BEGINNER" | "MEN_INTERMEDIATE" | "MEN_ADVANCED" | "WOMEN",
+        rosterCategoryId,
         gender: gender as "MALE" | "FEMALE" | "OTHER",
         notes: String(formData.get("notes") ?? "").trim() || undefined,
       });
@@ -44,7 +62,9 @@ export function PlayersQuickAdd({ tournamentSlug, uploadsEnabled }: PlayersQuick
       }
       form.reset();
       setPhotoUrl("");
+      setRosterCategoryId(defaultRosterCategoryId);
       router.refresh();
+      onCreated?.();
     } finally {
       setIsSubmitting(false);
     }
@@ -52,7 +72,11 @@ export function PlayersQuickAdd({ tournamentSlug, uploadsEnabled }: PlayersQuick
 
   return (
     <form
-      className="grid gap-4 rounded-xl border border-border/70 bg-card/40 p-6 backdrop-blur-md lg:grid-cols-2"
+      className={cn(
+        "grid gap-4 lg:grid-cols-2",
+        variant === "card" &&
+          "rounded-xl border border-border/70 bg-card/40 p-6 backdrop-blur-md",
+      )}
       onSubmit={(event) => void handleSubmit(event)}
     >
       <div className="space-y-2 lg:col-span-2">
@@ -60,17 +84,19 @@ export function PlayersQuickAdd({ tournamentSlug, uploadsEnabled }: PlayersQuick
         <Input id="player-name" name="name" required placeholder="Alex Morgan" />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="category">Category</Label>
+        <Label htmlFor="roster-category">Roster group</Label>
         <select
-          id="category"
-          name="category"
-          defaultValue="MEN_INTERMEDIATE"
+          id="roster-category"
+          name="rosterCategoryId"
+          value={rosterCategoryId}
+          onChange={(event) => setRosterCategoryId(event.target.value)}
           className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          <option value="MEN_BEGINNER">Men · Beginner</option>
-          <option value="MEN_INTERMEDIATE">Men · Intermediate</option>
-          <option value="MEN_ADVANCED">Men · Advanced</option>
-          <option value="WOMEN">Women</option>
+          {selectableCategories.map((opt) => (
+            <option key={opt.id} value={opt.id}>
+              {opt.name}
+            </option>
+          ))}
         </select>
       </div>
       <div className="space-y-2">
@@ -98,24 +124,25 @@ export function PlayersQuickAdd({ tournamentSlug, uploadsEnabled }: PlayersQuick
         />
       </div>
       <div className="space-y-2 lg:col-span-2">
-        <Label htmlFor="notes">Notes</Label>
+        <Label htmlFor="player-notes">Notes</Label>
         <Textarea
-          id="notes"
+          id="player-notes"
           name="notes"
           rows={3}
-          placeholder="Playing style, injuries, doubles preference…"
+          maxLength={500}
+          placeholder="Playing style, doubles preference…"
         />
       </div>
-      <div className="flex items-end lg:col-span-2">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving…" : "Add athlete"}
-        </Button>
-      </div>
       {error ? (
-        <p className="lg:col-span-2 text-sm text-destructive" role="alert">
+        <p className="text-sm text-destructive lg:col-span-2" role="alert">
           {error}
         </p>
       ) : null}
+      <div className="lg:col-span-2">
+        <Button type="submit" pending={isSubmitting} pendingLabel="Adding…" className="min-h-11">
+          Add player
+        </Button>
+      </div>
     </form>
   );
 }

@@ -78,10 +78,12 @@ export function ImageUploadOrUrlField({
           type="button"
           variant="secondary"
           size="sm"
-          disabled={!uploadsEnabled || busy}
+          disabled={!uploadsEnabled}
+          pending={busy}
+          pendingLabel="Uploading…"
           onClick={() => inputRef.current?.click()}
         >
-          {busy ? "Uploading…" : "Upload image"}
+          Upload image
         </Button>
         {trimmedUrl !== "" ? (
           <Button type="button" variant="ghost" size="sm" onClick={() => onUrlChange("")}>
@@ -91,9 +93,8 @@ export function ImageUploadOrUrlField({
       </div>
       {!uploadsEnabled ? (
         <p className="text-xs text-muted-foreground">
-          Add{" "}
-          <span className="font-mono text-[11px]">BLOB_READ_WRITE_TOKEN</span> (Vercel → Storage →
-          Blob) to enable uploads, or paste an image URL below.
+          Uploads aren&apos;t enabled on this workspace yet. Paste a public HTTPS image URL below, or ask
+          your administrator to turn on file uploads.
         </p>
       ) : (
         <p className="text-xs text-muted-foreground">

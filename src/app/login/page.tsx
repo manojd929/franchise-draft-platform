@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LoginForm } from "@/features/auth/login-form";
 import { ROUTES } from "@/constants/app";
+import { LoginForm } from "@/features/auth/login-form";
 import { getSessionUser } from "@/lib/auth/session";
 import { sanitizeNextPath } from "@/lib/navigation/sanitize-next-path";
 
@@ -15,41 +14,43 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
+  const params = await searchParams;
+  const nextPath = sanitizeNextPath(params.next, ROUTES.dashboard);
+
   const sessionUser = await getSessionUser();
   if (sessionUser) {
-    const params = await searchParams;
-    redirect(sanitizeNextPath(params.next, ROUTES.dashboard));
+    redirect(nextPath);
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-background px-6 py-16 text-foreground">
+    <div className="relative min-h-[100dvh] bg-background text-foreground">
       <div
         className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-sky-500/[0.07] to-transparent dark:from-sky-500/[0.14]"
         aria-hidden
       />
-      <div className="mb-10 flex flex-wrap items-center justify-between gap-4 text-sm">
-        <Link href={ROUTES.home} className="text-muted-foreground hover:text-foreground">
-          ← Back to landing
-        </Link>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5 md:px-6 md:py-8 lg:py-10">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border/40 pb-3 text-sm md:border-0 md:pb-0">
+          <Link
+            href={ROUTES.home}
+            className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-md py-1.5 pr-1.5 text-muted-foreground ring-offset-background transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            ← Back to landing
+          </Link>
           <ThemeToggle />
-        </div>
+        </header>
+
+        <main className="flex flex-1 flex-col justify-center py-7 sm:py-8 md:py-10">
+          <LoginForm nextPath={nextPath} />
+        </main>
+
+        <footer className="shrink-0 border-t border-border/40 px-0.5 pt-5 text-center text-sm leading-snug text-muted-foreground md:border-0 md:pt-6 md:leading-relaxed">
+          First time at auction time? Ask your organizer for this league&apos;s sign-in link (it opens
+          this page, then sends you to the right screen after you enter email and password). Franchise
+          owners usually bookmark{" "}
+          <span className="font-medium text-foreground">Owner</span> in the tournament menu. Players on the
+          roster only need an account if they were invited as an owner.
+        </footer>
       </div>
-      <Suspense
-        fallback={
-          <div className="mx-auto max-w-md text-center text-sm text-muted-foreground">
-            Loading…
-          </div>
-        }
-      >
-        <LoginForm />
-      </Suspense>
-      <p className="mx-auto mt-10 max-w-lg px-2 text-center text-sm leading-relaxed text-muted-foreground sm:text-base">
-        First time at auction time? Ask your organizer for this league&apos;s sign-in link (it opens
-        this page, then sends you to the right screen after you enter email and password). Franchise
-        owners usually bookmark{" "}
-        <span className="font-medium text-foreground">Owner</span> in the tournament menu. Players on the roster only need an account if they were invited as an owner.
-      </p>
     </div>
   );
 }

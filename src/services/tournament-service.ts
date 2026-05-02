@@ -1,11 +1,18 @@
 import { z } from "zod";
 
-import { DraftPhase, Gender, PlayerCategory } from "@/generated/prisma/enums";
-import { prisma } from "@/lib/prisma";
+import { DraftPhase, Gender } from "@/generated/prisma/enums";
+import { wholeRupeesToInrMinorUnits } from "@/lib/currency/player-entry-fee";
+import { tournamentDashboardListSelect } from "@/lib/data/tournament-dashboard-list-select";
 import {
   computePerTeamCategoryCaps,
-  SQUAD_RULE_CATEGORY_ORDER,
+  rosterCategoryOrderIds,
 } from "@/lib/squad-rules/compute-per-team-caps";
+import {
+  ADMIN_FRANCHISE_OWNER_AUTH_UNAVAILABLE,
+  franchiseOwnerAuthRemovalFaultUserMessage,
+} from "@/lib/errors/safe-user-feedback";
+import { DEFAULT_ROSTER_CATEGORY_SQUAD_CAPS } from "@/lib/roster/default-roster-category-seeds";
+import { prisma } from "@/lib/prisma";
 import {
   formatSquadValidationErrors,
   validateSquadRulesAgainstRoster,
@@ -14,6 +21,12 @@ import { TEAM_OWNER_SYNC_STUB_NOTE } from "@/constants/team-owner-player";
 import { DEFAULT_PICKS_PER_TEAM } from "@/constants/tournament-defaults";
 import { buildFranchiseOwnerAssigneeList } from "@/lib/data/franchise-owner-assignees";
 import { deleteAuthUserIfNoOwnerReferences } from "@/services/franchise-owner-auth";
+import {
+  resolveOwnerStubCategoryIdTx,
+  seedDefaultRosterCategories,
+  assertActiveRosterCategoryForPlayer,
+} from "@/services/roster-category-service";
+import { TournamentServiceError } from "@/services/tournament-errors";
 import { tournamentSlugFromName } from "@/utils/tournament-slug";
 
 import type {
@@ -27,12 +40,7 @@ import type {
   UpdateTournamentInput,
 } from "@/validations/tournament";
 
-export class TournamentServiceError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "TournamentServiceError";
-  }
-}
+export { TournamentServiceError } from "@/services/tournament-errors";
 
 async function removeFranchiseOwnerCredentialsIfOrphaned(
   userId: string,
@@ -40,11 +48,14 @@ async function removeFranchiseOwnerCredentialsIfOrphaned(
   try {
     await deleteAuthUserIfNoOwnerReferences(userId);
   } catch (e) {
-    throw new TournamentServiceError(
-      e instanceof Error
-        ? e.message
-        : "Could not remove authentication for that owner.",
-    );
+    if (process.env.NODE_ENV !== "production" && e instanceof Error) {
+      console.error("[remove-franchise-owner-credentials]", e.message);
+    }
+    const surfaced =
+      e instanceof Error && e.message === ADMIN_FRANCHISE_OWNER_AUTH_UNAVAILABLE
+        ? ADMIN_FRANCHISE_OWNER_AUTH_UNAVAILABLE
+        : franchiseOwnerAuthRemovalFaultUserMessage();
+    throw new TournamentServiceError(surfaced);
   }
 }
 
@@ -69,101 +80,99 @@ async function clearFranchiseOwnerLinksWhenNoTeamOwnership(
   });
 }
 
-const DEFAULT_SQUAD_RULES = [
-  { category: "MEN_ADVANCED" as const, maxCount: 2 },
-  { category: "MEN_INTERMEDIATE" as const, maxCount: 4 },
-  { category: "MEN_BEGINNER" as const, maxCount: 3 },
-  { category: "WOMEN" as const, maxCount: 1 },
-];
 
 export async function syncOwnerPlayersForTournament(
   tournamentId: string,
 ): Promise<void> {
-  const teams = await prisma.team.findMany({
-    where: { tournamentId, deletedAt: null },
-    select: { ownerUserId: true },
-  });
-  const ownerIds = [
-    ...new Set(
-      teams.map((t) => t.ownerUserId).filter((id): id is string => Boolean(id)),
-    ),
-  ];
+  await prisma.$transaction(async (tx) => {
+    const stubCategoryId = await resolveOwnerStubCategoryIdTx(tx, tournamentId);
 
-  const profiles =
-    ownerIds.length > 0
-      ? await prisma.userProfile.findMany({
-          where: { id: { in: ownerIds }, deletedAt: null },
-          select: { id: true, email: true, displayName: true },
-        })
-      : [];
+    const teams = await tx.team.findMany({
+      where: { tournamentId, deletedAt: null },
+      select: { ownerUserId: true },
+    });
+    const ownerIds = [
+      ...new Set(
+        teams.map((t) => t.ownerUserId).filter((id): id is string => Boolean(id)),
+      ),
+    ];
 
-  const linkedPlayers = await prisma.player.findMany({
-    where: {
-      tournamentId,
-      deletedAt: null,
-      linkedOwnerUserId: { not: null },
-    },
-    select: { id: true, linkedOwnerUserId: true, name: true, notes: true },
-  });
+    const profiles =
+      ownerIds.length > 0
+        ? await tx.userProfile.findMany({
+            where: { id: { in: ownerIds }, deletedAt: null },
+            select: { id: true, email: true, displayName: true },
+          })
+        : [];
 
-  function desiredOwnerName(profile: {
-    displayName: string | null;
-    email: string;
-  }): string {
-    const fromDisplay = profile.displayName?.trim();
-    if (fromDisplay) return fromDisplay;
-    const local = profile.email.split("@")[0]?.trim();
-    if (local) return local;
-    return "Team owner";
-  }
+    const linkedPlayers = await tx.player.findMany({
+      where: {
+        tournamentId,
+        deletedAt: null,
+        linkedOwnerUserId: { not: null },
+      },
+      select: { id: true, linkedOwnerUserId: true, name: true, notes: true },
+    });
 
-  for (const ownerId of ownerIds) {
-    const profile = profiles.find((p) => p.id === ownerId);
-    if (!profile) continue;
+    function desiredOwnerName(profile: {
+      displayName: string | null;
+      email: string;
+    }): string {
+      const fromDisplay = profile.displayName?.trim();
+      if (fromDisplay) return fromDisplay;
+      const local = profile.email.split("@")[0]?.trim();
+      if (local) return local;
+      return "Team owner";
+    }
 
-    const existing = linkedPlayers.find((p) => p.linkedOwnerUserId === ownerId);
-    const name = desiredOwnerName(profile);
+    for (const ownerId of ownerIds) {
+      const profile = profiles.find((p) => p.id === ownerId);
+      if (!profile) continue;
 
-    if (!existing) {
-      await prisma.player.create({
+      const existing = linkedPlayers.find((p) => p.linkedOwnerUserId === ownerId);
+      const name = desiredOwnerName(profile);
+
+      if (!existing) {
+        await tx.player.create({
+          data: {
+            tournamentId,
+            name,
+            photoUrl: null,
+            rosterCategoryId: stubCategoryId,
+            gender: Gender.MALE,
+            notes: TEAM_OWNER_SYNC_STUB_NOTE,
+            linkedOwnerUserId: ownerId,
+          },
+        });
+      } else {
+        await tx.player.update({
+          where: { id: existing.id },
+          data: {
+            name,
+          },
+        });
+      }
+    }
+
+    const staleIds = linkedPlayers
+      .filter(
+        (p) =>
+          p.linkedOwnerUserId !== null &&
+          !ownerIds.includes(p.linkedOwnerUserId) &&
+          p.notes === TEAM_OWNER_SYNC_STUB_NOTE,
+      )
+      .map((p) => p.id);
+
+    if (staleIds.length > 0) {
+      await tx.player.updateMany({
+        where: { id: { in: staleIds } },
         data: {
-          tournamentId,
-          name,
-          photoUrl: null,
-          category: PlayerCategory.MEN_ADVANCED,
-          gender: Gender.MALE,
-          notes: TEAM_OWNER_SYNC_STUB_NOTE,
-          linkedOwnerUserId: ownerId,
-        },
-      });
-    } else {
-      await prisma.player.update({
-        where: { id: existing.id },
-        data: {
-          name,
+          deletedAt: new Date(),
+          linkedOwnerUserId: null,
         },
       });
     }
-  }
-
-  const staleIds = linkedPlayers
-    .filter(
-      (p) =>
-        p.linkedOwnerUserId !== null &&
-        !ownerIds.includes(p.linkedOwnerUserId) &&
-        p.notes === TEAM_OWNER_SYNC_STUB_NOTE,
-    )
-    .map((p) => p.id);
-
-  if (staleIds.length > 0) {
-    await prisma.player.updateMany({
-      where: { id: { in: staleIds } },
-      data: {
-        deletedAt: new Date(),
-        linkedOwnerUserId: null,
-      },
-    });
-  }
+  });
 }
 
 export async function createTournament(
@@ -172,6 +181,12 @@ export async function createTournament(
 ): Promise<{ slug: string }> {
   const slug = tournamentSlugFromName(input.name);
   await prisma.$transaction(async (tx) => {
+    const feeMinorUnits =
+      input.playerEntryFeeRupeesWhole !== undefined &&
+      input.playerEntryFeeRupeesWhole !== null &&
+      input.playerEntryFeeRupeesWhole > 0
+        ? wholeRupeesToInrMinorUnits(input.playerEntryFeeRupeesWhole)
+        : null;
     const tournament = await tx.tournament.create({
       data: {
         name: input.name,
@@ -182,14 +197,32 @@ export async function createTournament(
         createdById: userId,
         picksPerTeam: input.picksPerTeam ?? DEFAULT_PICKS_PER_TEAM,
         draftPhase: DraftPhase.SETUP,
+        playerEntryFeeMinorUnits: feeMinorUnits,
+        playerEntryFeeCurrencyCode: feeMinorUnits !== null ? "INR" : "INR",
       },
     });
+
+    await seedDefaultRosterCategories(tx, tournament.id);
+
+    const rosterRows = await tx.rosterCategory.findMany({
+      where: { tournamentId: tournament.id },
+      select: { id: true, stableKey: true },
+    });
     await tx.squadRule.createMany({
-      data: DEFAULT_SQUAD_RULES.map((rule) => ({
-        tournamentId: tournament.id,
-        category: rule.category,
-        maxCount: rule.maxCount,
-      })),
+      data: rosterRows.map((row) => {
+        let maxCount = 0;
+        if (row.stableKey !== null) {
+          const cap = DEFAULT_ROSTER_CATEGORY_SQUAD_CAPS[row.stableKey];
+          if (typeof cap === "number") {
+            maxCount = cap;
+          }
+        }
+        return {
+          tournamentId: tournament.id,
+          rosterCategoryId: row.id,
+          maxCount,
+        };
+      }),
     });
   });
   return { slug };
@@ -230,14 +263,7 @@ export async function listTournamentsForUser(userId: string) {
       createdById: userId,
     },
     orderBy: { updatedAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      draftPhase: true,
-      updatedAt: true,
-      _count: { select: { teams: true, players: true } },
-    },
+    select: tournamentDashboardListSelect,
   });
 }
 
@@ -263,7 +289,7 @@ async function resolveTeamOwnerUserId(
   const parsed = z.string().uuid().safeParse(trimmed);
   if (!parsed.success) {
     throw new TournamentServiceError(
-      "Owner ID must be a Supabase Auth user UUID (Dashboard → Authentication → Users).",
+      "Owner ID must be a valid UUID for an existing franchise-owner account. Prefer granting a login under Players instead of pasting IDs.",
     );
   }
   if (parsed.data === commissionerUserId) {
@@ -277,7 +303,7 @@ async function resolveTeamOwnerUserId(
   });
   if (!profile) {
     throw new TournamentServiceError(
-      "No profile exists for that UUID yet. Ask the owner to sign in once, then assign them.",
+      "No account matches that owner ID yet. Ask the franchise owner to sign in once, then assign them.",
     );
   }
 
@@ -529,12 +555,13 @@ export async function createPlayer(userId: string, input: CreatePlayerInput) {
     input.tournamentSlug,
     userId,
   );
+  await assertActiveRosterCategoryForPlayer(tournamentId, input.rosterCategoryId);
   await prisma.player.create({
     data: {
       tournamentId,
       name: input.name,
       photoUrl: input.photoUrl || null,
-      category: input.category,
+      rosterCategoryId: input.rosterCategoryId,
       gender: input.gender,
       notes: input.notes || null,
     },
@@ -553,12 +580,14 @@ export async function updatePlayer(userId: string, input: UpdatePlayerInput) {
       tournamentId,
       deletedAt: null,
     },
-    select: { category: true, linkedOwnerUserId: true },
+    select: { rosterCategoryId: true, linkedOwnerUserId: true },
   });
 
   if (!existing) {
     throw new TournamentServiceError("Player not found.");
   }
+
+  await assertActiveRosterCategoryForPlayer(tournamentId, input.rosterCategoryId);
 
   const trimmedName = input.name.trim();
 
@@ -567,7 +596,7 @@ export async function updatePlayer(userId: string, input: UpdatePlayerInput) {
     data: {
       name: trimmedName,
       photoUrl: input.photoUrl?.trim() ? input.photoUrl.trim() : null,
-      category: input.category,
+      rosterCategoryId: input.rosterCategoryId,
       gender: input.gender,
       notes: input.notes?.trim() ? input.notes.trim() : null,
     },
@@ -583,7 +612,7 @@ export async function updatePlayer(userId: string, input: UpdatePlayerInput) {
     });
   }
 
-  if (existing.category !== input.category) {
+  if (existing.rosterCategoryId !== input.rosterCategoryId) {
     await reconcileSquadRulesForTournament(tournamentId);
   }
 }
@@ -668,13 +697,9 @@ export async function reconcileSquadRulesForTournament(
   });
 
   if (teamCount === 0) {
-    await prisma.$transaction(async (tx) => {
-      for (const category of SQUAD_RULE_CATEGORY_ORDER) {
-        await tx.squadRule.updateMany({
-          where: { tournamentId, category },
-          data: { maxCount: 0 },
-        });
-      }
+    await prisma.squadRule.updateMany({
+      where: { tournamentId },
+      data: { maxCount: 0 },
     });
     return;
   }
@@ -683,25 +708,37 @@ export async function reconcileSquadRulesForTournament(
     where: { tournamentId, deletedAt: null },
   });
 
+  const categoryRows = await prisma.rosterCategory.findMany({
+    where: { tournamentId, archivedAt: null },
+    orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+    select: { id: true, displayOrder: true, name: true },
+  });
+  const categoryOrder = rosterCategoryOrderIds(categoryRows);
+
   const grouped = await prisma.player.groupBy({
-    by: ["category"],
+    by: ["rosterCategoryId"],
     where: { tournamentId, deletedAt: null },
     _count: { _all: true },
   });
 
-  const playersPerCategory: Partial<Record<PlayerCategory, number>> = {};
+  const playersPerCategory: Partial<Record<string, number>> = {};
   for (const row of grouped) {
-    playersPerCategory[row.category] = row._count._all;
+    playersPerCategory[row.rosterCategoryId] = row._count._all;
   }
 
   const caps = computePerTeamCategoryCaps({
     teamCount,
+    categoryOrder,
     playersPerCategory,
   });
 
-  const draftRules = SQUAD_RULE_CATEGORY_ORDER.map((category) => ({
-    category,
-    maxCount: caps[category],
+  const categoryLabels = Object.fromEntries(
+    categoryRows.map((c) => [c.id, c.name]),
+  );
+
+  const draftRules = categoryOrder.map((rosterCategoryId) => ({
+    rosterCategoryId,
+    maxCount: caps[rosterCategoryId],
   }));
 
   const feasibility = validateSquadRulesAgainstRoster({
@@ -709,6 +746,7 @@ export async function reconcileSquadRulesForTournament(
     picksPerTeam: tournament.picksPerTeam,
     totalPlayers,
     playersPerCategory,
+    categoryLabels,
     rules: draftRules,
     requireDraftSlotsVsRoster: false,
   });
@@ -720,10 +758,10 @@ export async function reconcileSquadRulesForTournament(
   }
 
   await prisma.$transaction(async (tx) => {
-    for (const category of SQUAD_RULE_CATEGORY_ORDER) {
+    for (const rosterCategoryId of categoryOrder) {
       await tx.squadRule.updateMany({
-        where: { tournamentId, category },
-        data: { maxCount: caps[category] },
+        where: { tournamentId, rosterCategoryId },
+        data: { maxCount: caps[rosterCategoryId] },
       });
     }
   });
@@ -751,15 +789,27 @@ export async function saveSquadRules(userId: string, input: SquadRulesInput) {
     where: { tournamentId, deletedAt: null },
   });
 
+  const categoryRows = await prisma.rosterCategory.findMany({
+    where: { tournamentId, archivedAt: null },
+    select: { id: true, name: true },
+  });
+  const allowedIds = new Set(categoryRows.map((c) => c.id));
+  for (const rule of input.rules) {
+    if (!allowedIds.has(rule.rosterCategoryId)) {
+      throw new TournamentServiceError("Pick limits must reference roster groups from this tournament.");
+    }
+  }
+  const categoryLabels = Object.fromEntries(categoryRows.map((c) => [c.id, c.name]));
+
   const grouped = await prisma.player.groupBy({
-    by: ["category"],
+    by: ["rosterCategoryId"],
     where: { tournamentId, deletedAt: null },
     _count: { _all: true },
   });
 
-  const playersPerCategory: Partial<Record<PlayerCategory, number>> = {};
+  const playersPerCategory: Partial<Record<string, number>> = {};
   for (const row of grouped) {
-    playersPerCategory[row.category] = row._count._all;
+    playersPerCategory[row.rosterCategoryId] = row._count._all;
   }
 
   const feasibility = validateSquadRulesAgainstRoster({
@@ -767,6 +817,7 @@ export async function saveSquadRules(userId: string, input: SquadRulesInput) {
     picksPerTeam: tournament.picksPerTeam,
     totalPlayers,
     playersPerCategory,
+    categoryLabels,
     rules: input.rules,
   });
 
@@ -781,7 +832,7 @@ export async function saveSquadRules(userId: string, input: SquadRulesInput) {
       await tx.squadRule.updateMany({
         where: {
           tournamentId,
-          category: rule.category,
+          rosterCategoryId: rule.rosterCategoryId,
         },
         data: { maxCount: rule.maxCount },
       });

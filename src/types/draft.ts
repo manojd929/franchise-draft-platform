@@ -1,8 +1,4 @@
-import type {
-  DraftPhase,
-  Gender,
-  PlayerCategory,
-} from "@/generated/prisma/enums";
+import type { DraftPhase, Gender } from "@/generated/prisma/enums";
 
 export interface DraftTeamDto {
   id: string;
@@ -17,7 +13,9 @@ export interface DraftPlayerDto {
   id: string;
   name: string;
   photoUrl: string | null;
-  category: PlayerCategory;
+  rosterCategoryId: string;
+  rosterCategoryName: string;
+  rosterCategoryColorHex: string | null;
   gender: Gender;
   notes: string | null;
   isUnavailable: boolean;
@@ -34,7 +32,9 @@ export interface DraftOrderSlotDto {
 }
 
 export interface SquadRuleDto {
-  category: PlayerCategory;
+  rosterCategoryId: string;
+  rosterCategoryName: string;
+  rosterCategoryColorHex: string | null;
   maxCount: number;
 }
 
@@ -55,6 +55,13 @@ export interface DraftSnapshotDto {
   draftOrderLocked: boolean;
   overrideValidation: boolean;
   pickTimerSeconds: number | null;
+  /**
+   * When LIVE, normally only players in this roster group can be nominated.
+   * Null means commissioner left the spotlight open (all roster groups eligible).
+   */
+  auctionSpotlightRosterCategoryId: string | null;
+  auctionSpotlightRosterCategoryName: string | null;
+  auctionSpotlightRosterCategoryColorHex: string | null;
   pendingPickPlayerId: string | null;
   pendingPickTeamId: string | null;
   teams: DraftTeamDto[];
@@ -67,6 +74,7 @@ export interface DraftSnapshotDto {
   lastConfirmedPick: {
     playerName: string;
     teamName: string;
-    category: PlayerCategory;
+    rosterCategoryName: string;
+    rosterCategoryColorHex: string | null;
   } | null;
 }

@@ -20,6 +20,7 @@ import {
   randomizeDraftOrder,
   requestPick,
   resumeDraft,
+  setAuctionSpotlightCategory,
   skipTurn,
   startDraft,
   toggleOverrideValidation,
@@ -28,6 +29,7 @@ import {
 } from "@/services/draft-service";
 import {
   assignManualSchema,
+  auctionSpotlightSchema,
   confirmPickSchema,
   draftActionSlugSchema,
   pickRequestSchema,
@@ -133,6 +135,31 @@ export async function resumeDraftAction(input: unknown): Promise<ActionResult> {
     await resumeDraft({
       tournamentSlug: parsed.data.tournamentSlug,
       actorUserId: user.id,
+    });
+    revalidateTournament(parsed.data.tournamentSlug);
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return unauthorized();
+    }
+    return handle(e);
+  }
+}
+
+export async function setAuctionSpotlightCategoryAction(
+  input: unknown,
+): Promise<ActionResult> {
+  try {
+    const parsed = auctionSpotlightSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, error: "Invalid payload." };
+    const user = await requireSessionUser();
+    const raw = parsed.data.rosterCategoryId.trim();
+    const rosterCategoryId = raw === "" || raw === "OPEN" ? null : raw;
+
+    await setAuctionSpotlightCategory({
+      tournamentSlug: parsed.data.tournamentSlug,
+      actorUserId: user.id,
+      rosterCategoryId,
     });
     revalidateTournament(parsed.data.tournamentSlug);
     return { ok: true };

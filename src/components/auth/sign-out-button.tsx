@@ -44,10 +44,11 @@ export function SignOutButton({
         "min-h-11 w-full touch-manipulation sm:w-auto sm:min-w-[7rem]",
         className,
       )}
-      disabled={busy}
+      pending={busy}
+      pendingLabel="Signing out…"
       onClick={() => void handleSignOut()}
     >
-      {busy ? "Signing out…" : "Log out"}
+      Log out
     </Button>
   );
 }

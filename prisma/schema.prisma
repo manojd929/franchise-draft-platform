@@ -15,13 +15,6 @@ enum UserRole {
   VIEWER
 }
 
-enum PlayerCategory {
-  MEN_BEGINNER
-  MEN_INTERMEDIATE
-  MEN_ADVANCED
-  WOMEN
-}
-
 enum Gender {
   MALE
   FEMALE
@@ -65,6 +58,7 @@ enum DraftLogAction {
   SYNC_FORCED
   OVERRIDE_VALIDATION
   ERROR
+  AUCTION_FOCUS_CATEGORY
 }
 
 model UserProfile {
@@ -100,15 +94,21 @@ model Tournament {
   pendingIdempotencyKey  String?
   overrideValidation     Boolean     @default(false)
   pickTimerSeconds       Int?
-  draftStartedAt         DateTime?
-  draftEndedAt           DateTime?
-  createdAt              DateTime    @default(now())
-  updatedAt              DateTime    @updatedAt
-  deletedAt              DateTime?
+  draftStartedAt           DateTime?
+  draftEndedAt             DateTime?
+  playerEntryFeeMinorUnits Int?
+  playerEntryFeeCurrencyCode String   @default("INR") @db.VarChar(3)
+  /// When LIVE, owners see only nominees from this roster group; null means all groups (legacy / open drafting).
+  activeAuctionRosterCategoryId String?    @db.Uuid
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  deletedAt                DateTime?
 
-  creator       UserProfile       @relation("TournamentCreator", fields: [createdById], references: [id])
-  teams         Team[]
-  players       Player[]
+  creator           UserProfile      @relation("TournamentCreator", fields: [createdById], references: [id])
+  teams             Team[]
+  players           Player[]
+  rosterCategories RosterCategory[]
+  activeAuctionRosterCategory RosterCategory? @relation("ActiveAuctionSpotlightCategory", fields: [activeAuctionRosterCategoryId], references: [id], onDelete: SetNull)
   squadRules    SquadRule[]
   draftSlots    DraftOrderSlot[]
   picks         Pick[]
@@ -118,6 +118,27 @@ model Tournament {
 
   @@index([createdById])
   @@index([draftPhase])
+}
+
+model RosterCategory {
+  id           String    @id @default(uuid()) @db.Uuid
+  tournamentId String    @db.Uuid
+  name         String
+  displayOrder Int       @default(0)
+  colorHex     String?
+  archivedAt   DateTime?
+  /// Optional stable bucket for automation (e.g. owner stub sync). Commissioner-created categories stay null.
+  stableKey    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  players    Player[]
+  squadRules SquadRule[]
+  tournamentsAuctionSpotlight Tournament[] @relation("ActiveAuctionSpotlightCategory")
+
+  @@index([tournamentId])
+  @@unique([tournamentId, stableKey])
 }
 
 model Team {
@@ -144,42 +165,44 @@ model Team {
 }
 
 model Player {
-  id                  String          @id @default(uuid()) @db.Uuid
-  tournamentId      String          @db.Uuid
-  name                String
-  photoUrl            String?
-  category            PlayerCategory
-  gender              Gender
-  notes               String?
-  isUnavailable       Boolean         @default(false)
-  isLocked            Boolean         @default(false)
-  linkedOwnerUserId   String?         @db.Uuid
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  deletedAt           DateTime?
+  id               String       @id @default(uuid()) @db.Uuid
+  tournamentId     String       @db.Uuid
+  name             String
+  photoUrl         String?
+  rosterCategoryId String       @db.Uuid
+  gender           Gender
+  notes            String?
+  isUnavailable    Boolean      @default(false)
+  isLocked         Boolean      @default(false)
+  linkedOwnerUserId String?     @db.Uuid
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
 
-  tournament           Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  linkedOwner          UserProfile? @relation("OwnerPlayerStub", fields: [linkedOwnerUserId], references: [id])
-  picks                Pick[]
-  pendingPickFor       Tournament?  @relation("PendingPlayer")
+  tournament    Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  rosterCategory RosterCategory @relation(fields: [rosterCategoryId], references: [id], onDelete: Restrict)
+  linkedOwner    UserProfile?    @relation("OwnerPlayerStub", fields: [linkedOwnerUserId], references: [id])
+  picks          Pick[]
+  pendingPickFor  Tournament?     @relation("PendingPlayer")
 
   @@unique([tournamentId, linkedOwnerUserId])
   @@index([tournamentId])
-  @@index([category])
+  @@index([rosterCategoryId])
   @@index([name])
 }
 
 model SquadRule {
-  id           String         @id @default(uuid()) @db.Uuid
-  tournamentId String         @db.Uuid
-  category     PlayerCategory
-  maxCount     Int
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id               String       @id @default(uuid()) @db.Uuid
+  tournamentId     String       @db.Uuid
+  rosterCategoryId String       @db.Uuid
+  maxCount         Int
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
-  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament     Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  rosterCategory RosterCategory @relation(fields: [rosterCategoryId], references: [id], onDelete: Restrict)
 
-  @@unique([tournamentId, category])
+  @@unique([tournamentId, rosterCategoryId])
   @@index([tournamentId])
 }
 

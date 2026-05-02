@@ -25,6 +25,7 @@ export function CreateTournamentForm() {
         startTransition(async () => {
           setError(null);
           const picksPerTeamRaw = String(formData.get("picksPerTeam") ?? "").trim();
+          const playerEntryFeeRaw = String(formData.get("playerEntryFeeRupeesWhole") ?? "").trim();
           const result = await createTournamentAction({
             name: String(formData.get("name") ?? ""),
             description:
@@ -34,13 +35,16 @@ export function CreateTournamentForm() {
               : {}),
             logoUrl: String(formData.get("logoUrl") ?? "").trim(),
             colorHex: String(formData.get("colorHex") ?? "").trim(),
+            ...(playerEntryFeeRaw !== ""
+              ? { playerEntryFeeRupeesWhole: Number(playerEntryFeeRaw) }
+              : {}),
           });
           if (!result.ok) {
             setError(result.error);
             return;
           }
           if (result.slug) {
-            router.push(ROUTES.teams(result.slug));
+            router.push(ROUTES.categories(result.slug));
             router.refresh();
           }
         });
@@ -97,14 +101,35 @@ export function CreateTournamentForm() {
           Leave blank to use {DEFAULT_PICKS_PER_TEAM} snake-draft picks per team. Enter a number between 1 and 50 only if you want a different draft length.
         </p>
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="player-entry-fee-inr">
+          Player entry fee (INR){" "}
+          <span className="font-normal text-muted-foreground">(optional)</span>
+        </Label>
+        <Input
+          id="player-entry-fee-inr"
+          name="playerEntryFeeRupeesWhole"
+          type="number"
+          min={0}
+          max={5_000_000}
+          step={1}
+          inputMode="numeric"
+          placeholder="e.g. 1500"
+          aria-describedby="player-entry-fee-hint"
+        />
+        <p id="player-entry-fee-hint" className="text-xs text-muted-foreground">
+          Whole rupees per athlete; stored internally on the tournament row with currency metadata for INR
+          today. Omit when no published participation fee applies.
+        </p>
+      </div>
       {error ? (
         <p className="text-sm text-destructive" role="alert">
           {error}
         </p>
       ) : null}
       <div className="flex gap-3">
-        <Button type="submit" disabled={pending} className="min-h-11">
-          {pending ? "Saving…" : "Create tournament"}
+        <Button type="submit" pending={pending} pendingLabel="Creating…" className="min-h-11">
+          Create tournament
         </Button>
         <Link
           href={ROUTES.dashboard}

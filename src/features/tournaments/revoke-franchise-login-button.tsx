@@ -85,10 +85,9 @@ export function RevokeFranchiseLoginButton({
           <AlertDialogHeader>
             <AlertDialogTitle>Revoke franchise login?</AlertDialogTitle>
             <AlertDialogDescription className="text-left">
-              Removes Supabase credentials for{" "}
-              <span className="font-medium text-foreground">{playerName}</span> when they are not
-              assigned to a franchise on Teams. If they still control a team, remove them there
-              first.
+              Removes sign-in credentials for{" "}
+              <span className="font-medium text-foreground">{playerName}</span> when they are not assigned to a
+              franchise on Teams. If they still control a team, remove them there first.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error ? (
@@ -104,13 +103,14 @@ export function RevokeFranchiseLoginButton({
               type="button"
               variant="destructive"
               className="min-h-11 touch-manipulation"
-              disabled={busy}
+              pending={busy}
+              pendingLabel="Revoking…"
               onClick={(event) => {
                 event.preventDefault();
                 void confirmRevoke();
               }}
             >
-              {busy ? "Revoking…" : "Revoke login"}
+              Revoke login
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -9,11 +9,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FranchiseOwnersSummary } from "@/features/tournaments/franchise-owners-summary";
-import { InviteOwnerPanel } from "@/features/tournaments/invite-owner-panel";
 import { RemoveTeamOwnerButton } from "@/features/tournaments/remove-team-owner-button";
 import { TeamEditDialog } from "@/features/tournaments/team-edit-dialog";
 import { TeamOwnerEditDialog } from "@/features/tournaments/team-owner-edit-dialog";
-import { TeamsQuickAdd } from "@/features/tournaments/teams-quick-add";
+import { TeamsSetupToolbar } from "@/features/tournaments/teams-setup-toolbar";
 import { DraftPhase } from "@/generated/prisma/enums";
 import { buildFranchiseOwnerAssigneeList } from "@/lib/data/franchise-owner-assignees";
 import { getSessionUser } from "@/lib/auth/session";
@@ -67,15 +66,17 @@ export default async function TeamsPage({ params }: PageProps) {
       <header>
         <h2 className="text-xl font-semibold tracking-tight sm:text-2xl lg:text-3xl">Teams</h2>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-          Add team name, color, and logo. Pick one owner per team. Use{" "}
-          <span className="font-medium text-foreground">Teams</span> in the top menu anytime.
+          Franchise labels, visuals, and owner assignment. Capture new franchises from{' '}
+          <span className="font-medium text-foreground">Add franchise</span> so this page stays tidy.
         </p>
       </header>
 
-      <InviteOwnerPanel
+      <TeamsSetupToolbar
         tournamentSlug={slug}
         invitingSupported={invitingSupported}
         canInviteOwners={canInviteOwners}
+        assignablePeople={assignablePeople}
+        uploadsEnabled={uploadsEnabled}
       />
 
       <FranchiseOwnersSummary
@@ -88,12 +89,6 @@ export default async function TeamsPage({ params }: PageProps) {
           name: team.name,
           ownerUserId: team.ownerUserId,
         }))}
-      />
-
-      <TeamsQuickAdd
-        tournamentSlug={slug}
-        assignablePeople={assignablePeople}
-        uploadsEnabled={uploadsEnabled}
       />
 
       <div className="overflow-x-auto rounded-xl border border-border/70 bg-card/30 backdrop-blur-md">
@@ -110,7 +105,7 @@ export default async function TeamsPage({ params }: PageProps) {
             {teams.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-muted-foreground">
-                  No teams yet. Use the form above.
+                  No franchises yet. Open <span className="font-medium">Add franchise</span> above.
                 </TableCell>
               </TableRow>
             ) : (

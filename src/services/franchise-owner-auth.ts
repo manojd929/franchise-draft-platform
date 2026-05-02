@@ -1,10 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 
 import { UserRole } from "@/generated/prisma/enums";
+import { ADMIN_FRANCHISE_OWNER_AUTH_UNAVAILABLE } from "@/lib/errors/safe-user-feedback";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Deletes Supabase Auth user and soft-deletes `UserProfile` when nothing references this id as a franchise owner.
+ * Deletes the auth-backed user profile when nothing references this id as a franchise owner.
  * No-op if teams or players still reference the user.
  */
 export async function deleteAuthUserIfNoOwnerReferences(userId: string): Promise<void> {
@@ -37,9 +38,7 @@ export async function deleteAuthUserIfNoOwnerReferences(userId: string): Promise
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url?.trim() || !serviceKey?.trim()) {
-    throw new Error(
-      "Server missing SUPABASE_SERVICE_ROLE_KEY. Add it so owner logins can be removed from authentication.",
-    );
+    throw new Error(ADMIN_FRANCHISE_OWNER_AUTH_UNAVAILABLE);
   }
 
   const adminClient = createClient(url, serviceKey, {
@@ -51,7 +50,10 @@ export async function deleteAuthUserIfNoOwnerReferences(userId: string): Promise
 
   const { error } = await adminClient.auth.admin.deleteUser(userId);
   if (error) {
-    throw new Error(error.message);
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[franchise-owner-auth:deleteUser]", error.message);
+    }
+    throw new Error(ADMIN_FRANCHISE_OWNER_AUTH_UNAVAILABLE);
   }
 
   await prisma.userProfile.updateMany({

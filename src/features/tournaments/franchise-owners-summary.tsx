@@ -49,9 +49,9 @@ export function FranchiseOwnersSummary({
       </h3>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
         Only franchise-owner accounts tied to this league appear below (role Owner or linked from a
-        roster row here). Commissioner logins never appear. Removing login clears assignments here,
-        drops roster links for those accounts in this league, and deletes Supabase credentials when
-        nothing else references them.
+        roster row here). Commissioner logins never appear. Removing login clears assignments here, drops roster
+        links for those accounts in this league, and deletes sign-in credentials when nothing else references
+        them.
       </p>
       <div className="mt-4 overflow-x-auto rounded-lg border border-border/60 bg-background/40">
         <Table>

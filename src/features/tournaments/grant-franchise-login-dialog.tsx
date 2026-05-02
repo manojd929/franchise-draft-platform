@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createLeagueOwnerForPlayerAction } from "@/features/tournaments/actions";
+import { ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE } from "@/lib/errors/safe-user-feedback";
 
 interface GrantFranchiseLoginDialogProps {
   tournamentSlug: string;
@@ -40,7 +41,7 @@ export function GrantFranchiseLoginDialog({
 
   const locked = !invitingSupported || !canInviteOwners;
   const lockedTitle = !invitingSupported
-    ? "Add SUPABASE_SERVICE_ROLE_KEY to create owner logins from here."
+    ? ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE
     : "Owner logins cannot be changed after the draft configuration is sealed.";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -94,9 +95,9 @@ export function GrantFranchiseLoginDialog({
         <DialogHeader>
           <DialogTitle>Grant franchise owner login</DialogTitle>
           <DialogDescription>
-            Creates Supabase email and password for{" "}
-            <span className="font-medium text-foreground">{playerName}</span>. After this, assign
-            them to a team from Teams if you have not already.
+            Creates an email and password login for{" "}
+            <span className="font-medium text-foreground">{playerName}</span>. After this, assign them to a team
+            from Teams if you have not already.
           </DialogDescription>
         </DialogHeader>
         <form className="grid gap-4 py-2" onSubmit={(event) => void handleSubmit(event)}>
@@ -143,11 +144,11 @@ export function GrantFranchiseLoginDialog({
             </p>
           ) : null}
           <DialogFooter className="gap-2 sm:gap-2">
-            <DialogClose render={<Button type="button" variant="outline" />}>
+            <DialogClose render={<Button type="button" variant="outline" disabled={isSubmitting} />}>
               Close
             </DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating…" : "Create login"}
+            <Button type="submit" pending={isSubmitting} pendingLabel="Creating…">
+              Create login
             </Button>
           </DialogFooter>
         </form>

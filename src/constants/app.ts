@@ -3,6 +3,7 @@ export const APP_NAME = "DraftForge";
 export const ROUTES = {
   home: "/",
   login: "/login",
+  apiAuthEstablishSession: "/api/auth/establish-session",
   dashboard: "/dashboard",
   settings: "/settings",
   tournamentNew: "/tournament/new",
@@ -14,4 +15,5 @@ export const ROUTES = {
   admin: (slug: string) => `/tournament/${slug}/admin`,
   tv: (slug: string) => `/tournament/${slug}/tv`,
   owner: (slug: string) => `/tournament/${slug}/owner`,
+  categories: (slug: string) => `/tournament/${slug}/categories`,
 } as const;

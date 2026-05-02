@@ -1,20 +1,27 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ROUTES } from "@/constants/app";
-import { sanitizeNextPath } from "@/lib/navigation/sanitize-next-path";
-import { establishServerSessionAfterPasswordLogin } from "@/features/auth/establish-server-session-action";
+
+import {
+  authPasswordSignInUserMessage,
+  authSessionFinalizeUserMessage,
+  networkOrUnknownSignInUserMessage,
+  SIGN_IN_NOT_CONFIGURED,
+} from "@/lib/errors/safe-user-feedback";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
-export function LoginForm() {
-  const searchParams = useSearchParams();
-  const nextPath = sanitizeNextPath(searchParams.get("next"), ROUTES.dashboard);
+interface LoginFormProps {
+  /** Server-sanitized post-sign-in redirect to avoid suspense/search-params hydration churn. */
+  nextPath: string;
+}
+
+export function LoginForm({ nextPath }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -23,7 +30,7 @@ export function LoginForm() {
   const handleSubmit = async () => {
     setMessage(null);
     if (!isSupabaseConfigured()) {
-      setMessage("Sign-in is not set up on this site yet. Ask your league organizer.");
+      setMessage(SIGN_IN_NOT_CONFIGURED);
       return;
     }
 
@@ -35,7 +42,7 @@ export function LoginForm() {
         password,
       });
       if (error) {
-        setMessage(error.message);
+        setMessage(authPasswordSignInUserMessage(error.message));
         return;
       }
 
@@ -45,37 +52,51 @@ export function LoginForm() {
         return;
       }
 
-      const syncResult = await establishServerSessionAfterPasswordLogin({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
+      const finalizeRes = await fetch(ROUTES.apiAuthEstablishSession, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        }),
       });
-      if (!syncResult.ok) {
-        setMessage(syncResult.error);
+
+      const finalizePayload: unknown = await finalizeRes.json().catch(() => null);
+      const syncOk =
+        finalizePayload !== null &&
+        typeof finalizePayload === "object" &&
+        "ok" in finalizePayload &&
+        (finalizePayload as { ok?: unknown }).ok === true;
+
+      if (!finalizeRes.ok || !syncOk) {
+        setMessage(authSessionFinalizeUserMessage());
         return;
       }
 
       /* Full navigation avoids stale client state after auth cookies are set (router.push alone can leave /login visible). */
       window.location.assign(nextPath);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not sign in. Try again.");
+      setMessage(networkOrUnknownSignInUserMessage(err));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-6 rounded-2xl border border-border/70 bg-card/85 p-8 text-card-foreground shadow-lg backdrop-blur-xl">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Sign in</h1>
-        <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+    <div className="flex w-full flex-col gap-5 rounded-2xl border border-border/70 bg-card/85 px-6 py-6 text-card-foreground shadow-lg backdrop-blur-xl sm:px-7 sm:py-7">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-balance text-3xl font-semibold tracking-tight">Sign in</h1>
+        <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
           League organizers and franchise owners use the email and password the commissioner gave
           you. During the auction, franchise owners should open the{" "}
           <span className="font-medium text-foreground">Owner</span> screen after signing in. The same
           login works every week.
         </p>
       </div>
-      <div className="space-y-4">
-        <div className="space-y-2">
+
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
@@ -85,7 +106,7 @@ export function LoginForm() {
             onChange={(event) => setEmail(event.target.value)}
           />
         </div>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-1.5">
           <Label htmlFor="password">Password</Label>
           <Input
             id="password"
@@ -96,20 +117,25 @@ export function LoginForm() {
           />
         </div>
       </div>
-      {message ? (
-        <p className="text-sm text-destructive" role="alert">
-          {message}
-        </p>
-      ) : null}
-      <Button
-        type="button"
-        disabled={isSubmitting}
-        className="min-h-12 w-full text-base"
-        onClick={() => void handleSubmit()}
-      >
-        {isSubmitting ? "Signing in…" : "Sign in"}
-      </Button>
-      <p className="text-center text-sm leading-relaxed text-muted-foreground">
+
+      <div className="flex flex-col gap-3">
+        {message ? (
+          <p className="text-sm leading-snug text-destructive" role="alert">
+            {message}
+          </p>
+        ) : null}
+        <Button
+          type="button"
+          pending={isSubmitting}
+          pendingLabel="Signing in…"
+          className="min-h-12 w-full text-base"
+          onClick={() => void handleSubmit()}
+        >
+          Sign in
+        </Button>
+      </div>
+
+      <p className="border-t border-border/50 pt-4 text-center text-sm leading-snug text-muted-foreground md:leading-relaxed">
         New franchise owner? Your commissioner creates your login from{" "}
         <span className="font-medium text-foreground">Teams</span>. Forgot password? Ask them to reset
         or re-invite you.

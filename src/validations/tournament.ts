@@ -10,6 +10,8 @@ export const createTournamentSchema = z.object({
     .regex(/^#[0-9A-Fa-f]{6}$/u)
     .optional()
     .or(z.literal("")),
+  /** Whole rupees; stored as INR minor units. */
+  playerEntryFeeRupeesWhole: z.coerce.number().int().min(0).max(5_000_000).optional(),
 });
 
 export type CreateTournamentInput = z.infer<typeof createTournamentSchema>;
@@ -87,12 +89,7 @@ export const createPlayerSchema = z.object({
   tournamentSlug: z.string().min(1),
   name: z.string().min(1).max(120),
   photoUrl: z.string().url().optional().or(z.literal("")),
-  category: z.enum([
-    "MEN_BEGINNER",
-    "MEN_INTERMEDIATE",
-    "MEN_ADVANCED",
-    "WOMEN",
-  ]),
+  rosterCategoryId: z.string().uuid(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]),
   notes: z.string().max(500).optional(),
 });
@@ -104,12 +101,7 @@ export const updatePlayerSchema = z.object({
   playerId: z.string().uuid(),
   name: z.string().min(1).max(120),
   photoUrl: z.string().url().optional().or(z.literal("")),
-  category: z.enum([
-    "MEN_BEGINNER",
-    "MEN_INTERMEDIATE",
-    "MEN_ADVANCED",
-    "WOMEN",
-  ]),
+  rosterCategoryId: z.string().uuid(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]),
   notes: z.string().max(500).optional(),
 });
@@ -134,16 +126,11 @@ export const squadRulesSchema = z.object({
   rules: z
     .array(
       z.object({
-        category: z.enum([
-          "MEN_BEGINNER",
-          "MEN_INTERMEDIATE",
-          "MEN_ADVANCED",
-          "WOMEN",
-        ]),
+        rosterCategoryId: z.string().uuid(),
         maxCount: z.coerce.number().int().min(0).max(50),
       }),
     )
-    .length(4),
+    .min(1),
 });
 
 export type SquadRulesInput = z.infer<typeof squadRulesSchema>;
@@ -167,6 +154,16 @@ export const assignManualSchema = z.object({
   playerId: z.string().uuid(),
   teamId: z.string().uuid(),
   idempotencyKey: z.string().uuid(),
+});
+
+/** `OPEN` clears the LIVE roster-group spotlight (owners see all categories again). */
+export const auctionSpotlightSchema = z.object({
+  tournamentSlug: z.string().min(1),
+  rosterCategoryId: z.union([
+    z.string().uuid(),
+    z.literal("OPEN"),
+    z.literal(""),
+  ]),
 });
 
 export const playerIdSlugSchema = z.object({

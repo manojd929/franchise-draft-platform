@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { createTeamAction } from "@/features/tournaments/actions";
 import {
   OwnerPicker,
@@ -17,12 +18,16 @@ interface TeamsQuickAddProps {
   tournamentSlug: string;
   assignablePeople: AssignablePerson[];
   uploadsEnabled: boolean;
+  variant?: "card" | "plain";
+  onCreated?: () => void;
 }
 
 export function TeamsQuickAdd({
   tournamentSlug,
   assignablePeople,
   uploadsEnabled,
+  variant = "card",
+  onCreated,
 }: TeamsQuickAddProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +58,7 @@ export function TeamsQuickAdd({
       setOwnerUserId("");
       setLogoUrl("");
       router.refresh();
+      onCreated?.();
     } finally {
       setIsSubmitting(false);
     }
@@ -60,7 +66,11 @@ export function TeamsQuickAdd({
 
   return (
     <form
-      className="grid gap-4 rounded-xl border border-border/70 bg-card/40 p-6 backdrop-blur-md"
+      className={cn(
+        "grid gap-4",
+        variant === "card" &&
+          "rounded-xl border border-border/70 bg-card/40 p-6 backdrop-blur-md",
+      )}
       onSubmit={(event) => void handleSubmit(event)}
     >
       <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.75fr)_auto] md:grid-rows-[auto_auto] md:gap-x-4 md:gap-y-2">
@@ -108,10 +118,11 @@ export function TeamsQuickAdd({
         <div className="flex md:col-start-4 md:row-start-2 md:self-end md:justify-end">
           <Button
             type="submit"
-            disabled={isSubmitting}
+            pending={isSubmitting}
+            pendingLabel="Saving…"
             className="h-8 w-full min-w-[10rem] md:w-auto"
           >
-            {isSubmitting ? "Saving…" : "Add franchise"}
+            Add franchise
           </Button>
         </div>
       </div>
