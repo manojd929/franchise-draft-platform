@@ -206,7 +206,7 @@ export function PlayerCard({
               disabled={nominateDisabled}
               onClick={onNominate}
               className={cn(
-                "mt-auto rounded-lg bg-primary text-center font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40",
+                "mt-auto cursor-pointer rounded-lg bg-primary text-center font-semibold text-primary-foreground transition hover:bg-primary/90 active:translate-y-px active:scale-[0.985] active:brightness-[0.98] disabled:cursor-not-allowed disabled:opacity-40",
                 compact ? "min-h-9 px-2 py-2 text-xs sm:text-[13px]" : "min-h-12 px-4 py-3 text-base sm:min-h-14 sm:text-lg",
               )}
             >

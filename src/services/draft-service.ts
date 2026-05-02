@@ -107,6 +107,9 @@ async function loadDraftTournamentBySlug(slug: string) {
 }
 
 function mapSnapshot(t: NonNullable<Awaited<ReturnType<typeof loadDraftTournamentBySlug>>>): DraftSnapshotDto {
+  const draftBoardPlayers = t.players.filter(
+    (player) => player.linkedOwnerUserId === null,
+  );
   const playerAssignments = new Map<
     string,
     { teamId: string; confirmed: boolean }
@@ -150,23 +153,6 @@ function mapSnapshot(t: NonNullable<Awaited<ReturnType<typeof loadDraftTournamen
       ? t.activeAuctionRosterCategory
       : null;
 
-  for (const player of t.players) {
-    if (player.linkedOwnerUserId === null) {
-      continue;
-    }
-    if (playerAssignments.has(player.id)) {
-      continue;
-    }
-    const ownerTeam = t.teams.find((team) => team.ownerUserId === player.linkedOwnerUserId);
-    if (!ownerTeam) {
-      continue;
-    }
-    playerAssignments.set(player.id, {
-      teamId: ownerTeam.id,
-      confirmed: true,
-    });
-  }
-
   return {
     tournamentId: t.id,
     slug: t.slug,
@@ -190,7 +176,7 @@ function mapSnapshot(t: NonNullable<Awaited<ReturnType<typeof loadDraftTournamen
       colorHex: team.colorHex,
       ownerUserId: team.ownerUserId,
     })),
-    players: t.players.map((player) => {
+    players: draftBoardPlayers.map((player) => {
       const assignment = playerAssignments.get(player.id);
       return {
         id: player.id,
@@ -203,7 +189,7 @@ function mapSnapshot(t: NonNullable<Awaited<ReturnType<typeof loadDraftTournamen
         notes: player.notes,
         isUnavailable: player.isUnavailable,
         isLocked: player.isLocked,
-        runsFranchiseLogin: player.linkedOwnerUserId !== null,
+        runsFranchiseLogin: false,
         assignedTeamId: assignment?.teamId ?? null,
         hasConfirmedPick: assignment?.confirmed ?? false,
       };
@@ -360,10 +346,7 @@ async function validatePickAllowed(params: {
   });
   if (existing) throw new DraftServiceError("Player already drafted.");
 
-  if (
-    player.linkedOwnerUserId !== null &&
-    !params.overrideValidation
-  ) {
+  if (player.linkedOwnerUserId !== null) {
     throw new DraftServiceError(
       "Roster rows tied to another franchise owner's login cannot be drafted in the auction.",
     );

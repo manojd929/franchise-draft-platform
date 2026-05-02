@@ -62,7 +62,11 @@ export default async function RulesPage({ params }: PageProps) {
     }),
     prisma.player.groupBy({
       by: ["rosterCategoryId"],
-      where: { tournamentId: tournament.id, deletedAt: null },
+      where: {
+        tournamentId: tournament.id,
+        deletedAt: null,
+        linkedOwnerUserId: null,
+      },
       _count: { _all: true },
     }),
   ]);

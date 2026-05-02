@@ -1,6 +1,7 @@
 import { FixtureStatus, TournamentFormat } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getFixturesSummary } from "@/services/fixtures-service";
 import { assertTournamentOwnership, TournamentServiceError } from "@/services/tournament-service";
 
 export interface StandingRow {
@@ -50,7 +51,7 @@ export async function updateFixtureMatchState(params: {
   actorUserId: string;
   tournamentSlug: string;
   matchId: string;
-  status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  status?: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   sideOneScore?: number | null;
   sideTwoScore?: number | null;
 }) {
@@ -65,14 +66,20 @@ export async function updateFixtureMatchState(params: {
   let sideOneScore: number | null = params.sideOneScore ?? null;
   let sideTwoScore: number | null = params.sideTwoScore ?? null;
 
-  if (params.status === FixtureStatus.COMPLETED) {
+  const nextStatus =
+    params.status ??
+    (sideOneScore !== null || sideTwoScore !== null
+      ? FixtureStatus.COMPLETED
+      : FixtureStatus.SCHEDULED);
+
+  if (nextStatus === FixtureStatus.COMPLETED) {
     if (sideOneScore === null || sideTwoScore === null) {
       throw new TournamentServiceError("Completed match requires both scores.");
     }
     winnerSide = winnerFromScore(sideOneScore, sideTwoScore);
   }
 
-  if (params.status === FixtureStatus.SCHEDULED || params.status === FixtureStatus.CANCELLED) {
+  if (nextStatus === FixtureStatus.SCHEDULED || nextStatus === FixtureStatus.CANCELLED) {
     sideOneScore = null;
     sideTwoScore = null;
     winnerSide = null;
@@ -80,7 +87,7 @@ export async function updateFixtureMatchState(params: {
 
   await prisma.fixtureMatch.update({
     where: { id: params.matchId },
-    data: { status: params.status, sideOneScore, sideTwoScore, winnerSide },
+    data: { status: nextStatus, sideOneScore, sideTwoScore, winnerSide },
   });
 }
 
@@ -111,6 +118,8 @@ export async function togglePlayerElimination(params: {
 }
 
 export async function getTournamentRunSummary(tournamentSlug: string): Promise<TournamentRunSummary | null> {
+  await getFixturesSummary(tournamentSlug);
+
   const tournament = await prisma.tournament.findFirst({
     where: { slug: tournamentSlug, deletedAt: null },
     select: { id: true, createdById: true, format: true, draftPhase: true, name: true },

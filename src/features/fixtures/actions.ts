@@ -21,6 +21,8 @@ export async function generateRoundRobinTiesAction(input: unknown): Promise<Acti
     const user = await requireSessionUser();
     await generateRoundRobinTies({ actorUserId: user.id, ...parsed.data });
     revalidatePath(`/tournament/${parsed.data.tournamentSlug}/fixtures`);
+    revalidatePath(`/tournament/${parsed.data.tournamentSlug}/run`);
+    revalidatePath(`/tournament/${parsed.data.tournamentSlug}/leaderboard`);
     return { ok: true };
   } catch (error) {
     return handle(error);
@@ -34,9 +36,10 @@ export async function createSinglesMatchAction(input: unknown): Promise<ActionRe
     const user = await requireSessionUser();
     await createSinglesMatch({ actorUserId: user.id, ...parsed.data });
     revalidatePath(`/tournament/${parsed.data.tournamentSlug}/fixtures`);
+    revalidatePath(`/tournament/${parsed.data.tournamentSlug}/run`);
+    revalidatePath(`/tournament/${parsed.data.tournamentSlug}/leaderboard`);
     return { ok: true };
   } catch (error) {
     return handle(error);
   }
 }
-

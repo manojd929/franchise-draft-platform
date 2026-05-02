@@ -242,7 +242,7 @@ export function AdminControlRoomClient({
       case DraftPhase.LOCKED:
         return "Nominations locked";
       case DraftPhase.COMPLETED:
-        return "Complete";
+        return "Auction complete";
       default:
         return "—";
     }

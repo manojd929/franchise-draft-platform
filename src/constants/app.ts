@@ -18,4 +18,5 @@ export const ROUTES = {
   categories: (slug: string) => `/tournament/${slug}/categories`,
   fixtures: (slug: string) => `/tournament/${slug}/fixtures`,
   run: (slug: string) => `/tournament/${slug}/run`,
+  leaderboard: (slug: string) => `/tournament/${slug}/leaderboard`,
 } as const;

@@ -3,6 +3,11 @@ import { ROUTES } from "@/constants/app";
 
 /** Links shown in tournament shell nav (sticky header pills). */
 export type TournamentChromeNavLink = Readonly<{ href: string; label: string }>;
+export type TournamentChromeNavGroup = Readonly<{
+  id: "overview" | "auction" | "tournament";
+  label: string;
+  links: TournamentChromeNavLink[];
+}>;
 
 /**
  * Commissioners run the auction from Manage auction; nominee phones use Owner/Auction routes.
@@ -14,35 +19,84 @@ export function tournamentChromeNavLinks(
   viewer: TournamentChromeNavViewer,
   options?: { showFixtures?: boolean },
 ): TournamentChromeNavLink[] {
+  return tournamentChromeNavGroups(slug, viewer, options).flatMap(
+    (group) => group.links,
+  );
+}
+
+export function tournamentChromeNavGroups(
+  slug: string,
+  viewer: TournamentChromeNavViewer,
+  options?: { showFixtures?: boolean },
+): TournamentChromeNavGroup[] {
   const fixturesLink = options?.showFixtures
     ? [{ href: ROUTES.fixtures(slug), label: "Fixtures" as const }]
     : [];
-  const commissionerLinks: TournamentChromeNavLink[] = [
-    { href: ROUTES.tournament(slug), label: "Home" },
-    { href: ROUTES.categories(slug), label: "Roster groups" },
-    { href: ROUTES.players(slug), label: "All Players" },
-    { href: ROUTES.teams(slug), label: "All Teams" },
-    { href: ROUTES.rules(slug), label: "Rules" },
-    { href: ROUTES.admin(slug), label: "Manage auction" },
-    { href: ROUTES.run(slug), label: "Run tournament" },
-    { href: ROUTES.tv(slug), label: "Live roster board" },
-    ...fixturesLink,
+  const leaderboardLink = options?.showFixtures
+    ? [{ href: ROUTES.leaderboard(slug), label: "Leaderboard" as const }]
+    : [];
+  const commissionerGroups: TournamentChromeNavGroup[] = [
+    {
+      id: "overview",
+      label: "League",
+      links: [
+        { href: ROUTES.tournament(slug), label: "Home" },
+        { href: ROUTES.categories(slug), label: "Roster groups" },
+        { href: ROUTES.players(slug), label: "All Players" },
+        { href: ROUTES.teams(slug), label: "All Teams" },
+        { href: ROUTES.rules(slug), label: "Rules" },
+      ],
+    },
+    {
+      id: "auction",
+      label: "Auction",
+      links: [
+        { href: ROUTES.admin(slug), label: "Manage auction" },
+        { href: ROUTES.tv(slug), label: "Live roster board" },
+      ],
+    },
+    {
+      id: "tournament",
+      label: "Tournament",
+      links: [
+        ...fixturesLink,
+        { href: ROUTES.run(slug), label: "Run tournament" },
+        ...leaderboardLink,
+      ],
+    },
   ];
 
   if (viewer === "participant") {
     return [
-      { href: ROUTES.tournament(slug), label: "Home" },
-      { href: ROUTES.categories(slug), label: "Roster groups" },
-      { href: ROUTES.players(slug), label: "All Players" },
-      { href: ROUTES.teams(slug), label: "All Teams" },
-      { href: ROUTES.rules(slug), label: "Rules" },
-      { href: ROUTES.tv(slug), label: "Live roster board" },
-      { href: ROUTES.owner(slug), label: "My Team" },
-      ...fixturesLink,
+      {
+        id: "overview",
+        label: "League",
+        links: [
+          { href: ROUTES.tournament(slug), label: "Home" },
+          { href: ROUTES.categories(slug), label: "Roster groups" },
+          { href: ROUTES.players(slug), label: "All Players" },
+          { href: ROUTES.teams(slug), label: "All Teams" },
+          { href: ROUTES.rules(slug), label: "Rules" },
+          { href: ROUTES.owner(slug), label: "My Team" },
+        ],
+      },
+      {
+        id: "auction",
+        label: "Auction",
+        links: [
+          { href: ROUTES.draft(slug), label: "Auction board" },
+          { href: ROUTES.tv(slug), label: "Live roster board" },
+        ],
+      },
+      {
+        id: "tournament",
+        label: "Tournament",
+        links: [...fixturesLink, ...leaderboardLink],
+      },
     ];
   }
 
-  return commissionerLinks;
+  return commissionerGroups.filter((group) => group.links.length > 0);
 }
 
 /** Hub cards on tournament home (`/tournament/[slug]`). */
@@ -136,6 +190,13 @@ export function tournamentHubCardsForViewer(options: {
           href: ROUTES.fixtures,
           title: "Fixtures",
           description: "View and manage tournament fixtures and results.",
+        } satisfies TournamentHubCard]
+      : []),
+    ...(options.showFixtures
+      ? [{
+          href: ROUTES.leaderboard,
+          title: "Leaderboard",
+          description: "See standings, points, wins, and score differential in one table.",
         } satisfies TournamentHubCard]
       : []),
     ...(options.showFixtures

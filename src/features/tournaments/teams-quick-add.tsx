@@ -67,43 +67,45 @@ export function TeamsQuickAdd({
   return (
     <form
       className={cn(
-        "grid gap-4",
+        "grid gap-5",
         variant === "card" &&
           "rounded-xl border border-border/70 bg-card/40 p-6 backdrop-blur-md",
       )}
       onSubmit={(event) => void handleSubmit(event)}
     >
-      <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.75fr)_auto] md:grid-rows-[auto_auto] md:gap-x-4 md:gap-y-2">
-        <div className="space-y-2 md:contents">
-          <Label htmlFor="team-name" className="md:col-start-1 md:row-start-1">
-            Franchise name
-          </Label>
+      <div className="space-y-5 rounded-2xl border border-border/65 bg-card/35 p-5 shadow-sm">
+        <div className="space-y-2">
+          <Label htmlFor="team-name">Franchise name</Label>
           <Input
             id="team-name"
             name="name"
             required
             minLength={2}
             placeholder="Court Crushers"
-            className="md:col-start-1 md:row-start-2"
+            className="min-h-11"
           />
+          <p className="text-xs text-muted-foreground">
+            Use the full display name shown across fixtures, auction boards, and standings.
+          </p>
         </div>
-        <div className="space-y-2 md:contents">
-          <Label htmlFor="short" className="md:col-start-2 md:row-start-1">
-            Ticker
-          </Label>
+
+        <div className="space-y-2">
+          <Label htmlFor="short">Ticker</Label>
           <Input
             id="short"
             name="shortName"
             maxLength={8}
             placeholder="CCR"
-            className="md:col-start-2 md:row-start-2"
+            className="min-h-11"
           />
+          <p className="text-xs text-muted-foreground">
+            Short broadcast code for compact tables and live score views.
+          </p>
         </div>
-        <div className="space-y-2 md:contents">
-          <Label htmlFor="quick-owner" className="md:col-start-3 md:row-start-1">
-            Franchise owner
-          </Label>
-          <div className="min-w-0 md:col-start-3 md:row-start-2">
+
+        <div className="space-y-2">
+          <Label htmlFor="quick-owner">Franchise owner</Label>
+          <div className="min-w-0">
             <OwnerPicker
               id="quick-owner"
               label="Franchise owner"
@@ -114,24 +116,17 @@ export function TeamsQuickAdd({
               className="w-full"
             />
           </div>
-        </div>
-        <div className="flex md:col-start-4 md:row-start-2 md:self-end md:justify-end">
-          <Button
-            type="submit"
-            pending={isSubmitting}
-            pendingLabel="Saving…"
-            className="h-8 w-full min-w-[10rem] md:w-auto"
-          >
-            Add franchise
-          </Button>
+          <p className="text-xs text-muted-foreground">
+            Optional for now. You can assign or change the owner later from the Teams table.
+          </p>
         </div>
       </div>
 
-      <details className="rounded-lg border border-border/50 bg-background/40 px-4 py-3 text-sm">
+      <details className="rounded-2xl border border-border/60 bg-background/40 px-5 py-4 text-sm">
         <summary className="cursor-pointer font-medium text-foreground outline-none">
-          Logo & color (optional)
+          Branding (optional)
         </summary>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="mt-4 grid gap-5">
           <ImageUploadOrUrlField
             tournamentSlug={tournamentSlug}
             purpose="team-logo"
@@ -143,7 +138,10 @@ export function TeamsQuickAdd({
           />
           <div className="space-y-2">
             <Label htmlFor="colorHex">Accent HEX</Label>
-            <Input id="colorHex" name="colorHex" placeholder="#38bdf8" />
+            <Input id="colorHex" name="colorHex" placeholder="#38bdf8" className="min-h-11" />
+            <p className="text-xs text-muted-foreground">
+              Optional brand color used in team cards and visual accents.
+            </p>
           </div>
         </div>
       </details>
@@ -153,6 +151,17 @@ export function TeamsQuickAdd({
           {error}
         </p>
       ) : null}
+
+      <div className="flex justify-end border-t border-border/60 pt-2">
+        <Button
+          type="submit"
+          pending={isSubmitting}
+          pendingLabel="Saving…"
+          className="min-h-11 w-full sm:w-auto sm:min-w-[12rem]"
+        >
+          Add franchise
+        </Button>
+      </div>
     </form>
   );
 }

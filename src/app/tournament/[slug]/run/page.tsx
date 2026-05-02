@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,11 @@ import {
   toggleTeamEliminationAction,
   updateMatchStateAction,
 } from "@/features/tournament-run/actions";
+import {
+  fixtureStatusLabel,
+  getFixtureSideLabel,
+} from "@/features/tournament-run/match-presentation";
+import { ROUTES } from "@/constants/app";
 import { TournamentFormat } from "@/generated/prisma/enums";
 import { getSessionUser } from "@/lib/auth/session";
 import { getTournamentRunSummary } from "@/services/tournament-run-service";
@@ -28,125 +34,338 @@ export default async function RunTournamentPage({ params }: PageProps) {
   if (!isAdmin) {
     return <p className="text-sm text-muted-foreground">Only tournament admin can manage live match operations.</p>;
   }
+  const untiedMatches = summary.matches.filter((match) => match.tieId === null);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <header className="space-y-2">
         <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">Run Tournament</h2>
-        <p className="text-sm text-muted-foreground">
-          Update match status, scores, winner, and eliminations. Standings update automatically from completed matches.
+        <p className="max-w-3xl text-sm text-muted-foreground">
+          Enter final scores and the match is completed automatically. Use quick controls only for exceptions like starting a match early, resetting it, or cancelling it.
         </p>
       </header>
 
-      <section className="space-y-3">
-        <h3 className="font-medium">Live Standings</h3>
-        <div className="overflow-x-auto rounded-md border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th className="px-3 py-2">Rank</th>
-                <th className="px-3 py-2">{summary.tournament.format === TournamentFormat.DOUBLES_ONLY ? "Team" : "Player"}</th>
-                <th className="px-3 py-2">MP</th><th className="px-3 py-2">W</th><th className="px-3 py-2">L</th>
-                <th className="px-3 py-2">Pts</th><th className="px-3 py-2">Scored</th><th className="px-3 py-2">Conceded</th><th className="px-3 py-2">Diff</th><th className="px-3 py-2">State</th>
-              </tr>
-            </thead>
-            <tbody>
-              {summary.standings.map((row, index) => (
-                <tr key={row.entityId} className="border-t">
-                  <td className="px-3 py-2">{index + 1}</td>
-                  <td className="px-3 py-2 font-medium">{row.name}</td>
-                  <td className="px-3 py-2">{row.matchesPlayed}</td>
-                  <td className="px-3 py-2">{row.wins}</td>
-                  <td className="px-3 py-2">{row.losses}</td>
-                  <td className="px-3 py-2">{row.points}</td>
-                  <td className="px-3 py-2">{row.pointsScored}</td>
-                  <td className="px-3 py-2">{row.pointsConceded}</td>
-                  <td className="px-3 py-2">{row.pointDifference}</td>
-                  <td className="px-3 py-2">{row.eliminated ? <Badge variant="destructive">Eliminated</Badge> : <Badge variant="secondary">Active</Badge>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="rounded-2xl border border-border/70 bg-card/50 p-5 shadow-sm backdrop-blur-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-medium text-foreground">Match operations</h3>
+              <p className="text-sm text-muted-foreground">
+                {summary.matches.filter((match) => match.status === "COMPLETED").length} of {summary.matches.length} matches completed
+              </p>
+            </div>
+            <Link href={ROUTES.leaderboard(slug)}>
+              <Button variant="outline" className="min-h-10 px-4">
+                Open leaderboard
+              </Button>
+            </Link>
+          </div>
         </div>
-      </section>
 
-      <section className="space-y-3">
-        <h3 className="font-medium">Elimination Controls</h3>
-        <div className="grid gap-2 md:grid-cols-2">
-          {summary.standings.map((row) => (
-            <form
-              key={row.entityId}
-              action={async () => {
-                "use server";
-                if (summary.tournament.format === TournamentFormat.DOUBLES_ONLY) {
-                  await toggleTeamEliminationAction({
-                    tournamentSlug: slug,
-                    entityId: row.entityId,
-                    eliminated: !row.eliminated,
-                  });
-                } else {
+        <div className="rounded-2xl border border-border/70 bg-card/50 p-5 shadow-sm backdrop-blur-sm">
+          <h3 className="font-medium text-foreground">Elimination controls</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Mark a {summary.tournament.format === TournamentFormat.DOUBLES_ONLY ? "team" : "player"} eliminated only if your format needs bracket-style knockouts.
+          </p>
+          <div className="mt-4 space-y-2">
+            {summary.standings.map((row) => (
+              <form
+                key={row.entityId}
+                action={async () => {
+                  "use server";
+                  if (summary.tournament.format === TournamentFormat.DOUBLES_ONLY) {
+                    await toggleTeamEliminationAction({
+                      tournamentSlug: slug,
+                      entityId: row.entityId,
+                      eliminated: !row.eliminated,
+                    });
+                    return;
+                  }
+
                   await togglePlayerEliminationAction({
                     tournamentSlug: slug,
                     entityId: row.entityId,
                     eliminated: !row.eliminated,
                   });
-                }
-              }}
-              className="flex items-center justify-between rounded border px-3 py-2"
-            >
-              <span className="text-sm">{row.name}</span>
-              <Button type="submit" variant={row.eliminated ? "outline" : "destructive"} size="sm">
-                {row.eliminated ? "Reinstate" : "Eliminate"}
-              </Button>
-            </form>
-          ))}
+                }}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/65 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">{row.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {row.eliminated ? "Currently eliminated" : "Currently active"}
+                  </p>
+                </div>
+                <Button type="submit" size="sm" variant={row.eliminated ? "outline" : "destructive"}>
+                  {row.eliminated ? "Reinstate" : "Eliminate"}
+                </Button>
+              </form>
+            ))}
+          </div>
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h3 className="font-medium">All Matches</h3>
-        <ul className="space-y-3">
-          {summary.matches.map((match) => (
-            <li key={match.id} className="rounded-md border p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-medium">{match.matchType} · {match.status}</p>
-                <p className="text-xs text-muted-foreground">Winner: {match.winnerSide ?? "TBD"}</p>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Side 1: {match.participants.filter((p) => p.side === "SIDE_ONE").map((p) => p.player.name).join(" + ") || "TBD"}
-                {"  "}vs{"  "}
-                Side 2: {match.participants.filter((p) => p.side === "SIDE_TWO").map((p) => p.player.name).join(" + ") || "TBD"}
-              </p>
-              <form
-                action={async (formData) => {
-                  "use server";
-                  const status = String(formData.get("status") ?? "SCHEDULED");
-                  const sideOneScoreRaw = String(formData.get("sideOneScore") ?? "").trim();
-                  const sideTwoScoreRaw = String(formData.get("sideTwoScore") ?? "").trim();
-                  await updateMatchStateAction({
-                    tournamentSlug: slug,
-                    matchId: match.id,
-                    status,
-                    sideOneScore: sideOneScoreRaw === "" ? null : Number(sideOneScoreRaw),
-                    sideTwoScore: sideTwoScoreRaw === "" ? null : Number(sideTwoScoreRaw),
-                  });
-                }}
-                className="mt-3 grid gap-2 md:grid-cols-5"
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="font-medium text-foreground">Matches by tie</h3>
+          <Badge variant="secondary" className="rounded-full px-3 py-1">
+            {summary.ties.length} ties
+          </Badge>
+        </div>
+
+        <div className="space-y-4">
+          {summary.ties.map((tie) => {
+            const tieMatches = summary.matches.filter((match) => match.tieId === tie.id);
+
+            return (
+              <article
+                key={tie.id}
+                className="overflow-hidden rounded-2xl border border-border/70 bg-card/40 shadow-sm backdrop-blur-sm"
               >
-                <select name="status" defaultValue={match.status} className="h-10 rounded border px-2 text-sm">
-                  <option value="SCHEDULED">Scheduled</option>
-                  <option value="IN_PROGRESS">In progress</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </select>
-                <Input name="sideOneScore" type="number" min={0} defaultValue={match.sideOneScore ?? ""} placeholder="Side 1 score" />
-                <Input name="sideTwoScore" type="number" min={0} defaultValue={match.sideTwoScore ?? ""} placeholder="Side 2 score" />
-                <Button type="submit" className="md:col-span-2">Save match update</Button>
-              </form>
-            </li>
-          ))}
-        </ul>
+                <div className="border-b border-border/60 px-5 py-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h4 className="text-base font-semibold text-foreground">
+                        {tie.teamOne.name} vs {tie.teamTwo.name}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Round {tie.roundNumber} · {tieMatches.length} matches
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="rounded-full px-3 py-1">
+                      {tieMatches.filter((match) => match.status === "COMPLETED").length}/{tieMatches.length} completed
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="divide-y divide-border/50">
+                  {tieMatches.map((match, index) => (
+                    <div key={match.id} className="px-5 py-4">
+                      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium text-foreground">Match {index + 1}</p>
+                            <Badge variant="secondary" className="rounded-full px-2.5 py-0.5">
+                              {fixtureStatusLabel(match.status)}
+                            </Badge>
+                          </div>
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            <p>
+                              <span className="font-medium text-foreground">{tie.teamOne.name}:</span>{" "}
+                              {getFixtureSideLabel({
+                                match,
+                                side: "SIDE_ONE",
+                                fallbackTeamName: tie.teamOne.name,
+                              })}
+                            </p>
+                            <p>
+                              <span className="font-medium text-foreground">{tie.teamTwo.name}:</span>{" "}
+                              {getFixtureSideLabel({
+                                match,
+                                side: "SIDE_TWO",
+                                fallbackTeamName: tie.teamTwo.name,
+                              })}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 rounded-2xl border border-border/70 bg-background/70 p-4">
+                          <form
+                            action={async (formData) => {
+                              "use server";
+                              const sideOneScoreRaw = String(formData.get("sideOneScore") ?? "").trim();
+                              const sideTwoScoreRaw = String(formData.get("sideTwoScore") ?? "").trim();
+                              await updateMatchStateAction({
+                                tournamentSlug: slug,
+                                matchId: match.id,
+                                sideOneScore: sideOneScoreRaw === "" ? null : Number(sideOneScoreRaw),
+                                sideTwoScore: sideTwoScoreRaw === "" ? null : Number(sideTwoScoreRaw),
+                              });
+                            }}
+                            className="grid gap-2 sm:grid-cols-2"
+                          >
+                            <Input
+                              name="sideOneScore"
+                              type="number"
+                              min={0}
+                              defaultValue={match.sideOneScore ?? ""}
+                              placeholder={`${tie.teamOne.name} score`}
+                            />
+                            <Input
+                              name="sideTwoScore"
+                              type="number"
+                              min={0}
+                              defaultValue={match.sideTwoScore ?? ""}
+                              placeholder={`${tie.teamTwo.name} score`}
+                            />
+                            <Button type="submit" className="sm:col-span-2 min-h-10">
+                              Submit final score
+                            </Button>
+                          </form>
+
+                          <div className="grid gap-2 sm:grid-cols-3">
+                            <form
+                              action={async () => {
+                                "use server";
+                                await updateMatchStateAction({
+                                  tournamentSlug: slug,
+                                  matchId: match.id,
+                                  status: "IN_PROGRESS",
+                                });
+                              }}
+                            >
+                              <Button type="submit" variant="outline" className="min-h-10 w-full">
+                                Start
+                              </Button>
+                            </form>
+                            <form
+                              action={async () => {
+                                "use server";
+                                await updateMatchStateAction({
+                                  tournamentSlug: slug,
+                                  matchId: match.id,
+                                  status: "SCHEDULED",
+                                });
+                              }}
+                            >
+                              <Button type="submit" variant="outline" className="min-h-10 w-full">
+                                Reset
+                              </Button>
+                            </form>
+                            <form
+                              action={async () => {
+                                "use server";
+                                await updateMatchStateAction({
+                                  tournamentSlug: slug,
+                                  matchId: match.id,
+                                  status: "CANCELLED",
+                                });
+                              }}
+                            >
+                              <Button type="submit" variant="outline" className="min-h-10 w-full">
+                                Cancel
+                              </Button>
+                            </form>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </section>
+
+      {untiedMatches.length > 0 ? (
+        <section className="space-y-4">
+          <h3 className="font-medium text-foreground">Standalone matches</h3>
+          <div className="space-y-3">
+            {untiedMatches.map((match, index) => (
+              <article
+                key={match.id}
+                className="rounded-2xl border border-border/70 bg-card/40 px-5 py-4 shadow-sm backdrop-blur-sm"
+              >
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-foreground">Match {index + 1}</p>
+                      <Badge variant="secondary" className="rounded-full px-2.5 py-0.5">
+                        {fixtureStatusLabel(match.status)}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <p>{getFixtureSideLabel({ match, side: "SIDE_ONE" })}</p>
+                      <p>{getFixtureSideLabel({ match, side: "SIDE_TWO" })}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 rounded-2xl border border-border/70 bg-background/70 p-4">
+                    <form
+                      action={async (formData) => {
+                        "use server";
+                        const sideOneScoreRaw = String(formData.get("sideOneScore") ?? "").trim();
+                        const sideTwoScoreRaw = String(formData.get("sideTwoScore") ?? "").trim();
+                        await updateMatchStateAction({
+                          tournamentSlug: slug,
+                          matchId: match.id,
+                          sideOneScore: sideOneScoreRaw === "" ? null : Number(sideOneScoreRaw),
+                          sideTwoScore: sideTwoScoreRaw === "" ? null : Number(sideTwoScoreRaw),
+                        });
+                      }}
+                      className="grid gap-2 sm:grid-cols-2"
+                    >
+                      <Input
+                        name="sideOneScore"
+                        type="number"
+                        min={0}
+                        defaultValue={match.sideOneScore ?? ""}
+                        placeholder="Side 1 score"
+                      />
+                      <Input
+                        name="sideTwoScore"
+                        type="number"
+                        min={0}
+                        defaultValue={match.sideTwoScore ?? ""}
+                        placeholder="Side 2 score"
+                      />
+                      <Button type="submit" className="sm:col-span-2 min-h-10">
+                        Submit final score
+                      </Button>
+                    </form>
+
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <form
+                        action={async () => {
+                          "use server";
+                          await updateMatchStateAction({
+                            tournamentSlug: slug,
+                            matchId: match.id,
+                            status: "IN_PROGRESS",
+                          });
+                        }}
+                      >
+                        <Button type="submit" variant="outline" className="min-h-10 w-full">
+                          Start
+                        </Button>
+                      </form>
+                      <form
+                        action={async () => {
+                          "use server";
+                          await updateMatchStateAction({
+                            tournamentSlug: slug,
+                            matchId: match.id,
+                            status: "SCHEDULED",
+                          });
+                        }}
+                      >
+                        <Button type="submit" variant="outline" className="min-h-10 w-full">
+                          Reset
+                        </Button>
+                      </form>
+                      <form
+                        action={async () => {
+                          "use server";
+                          await updateMatchStateAction({
+                            tournamentSlug: slug,
+                            matchId: match.id,
+                            status: "CANCELLED",
+                          });
+                        }}
+                      >
+                        <Button type="submit" variant="outline" className="min-h-10 w-full">
+                          Cancel
+                        </Button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

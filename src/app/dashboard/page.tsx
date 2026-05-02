@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -129,7 +130,16 @@ export default async function DashboardPage() {
             tournaments.map((tournament) => (
               <Card key={tournament.id} className="border-border/70 bg-card/60 backdrop-blur-sm">
                 <CardHeader>
-                  <div className="flex items-start justify-between gap-3">
+                  {userRole === UserRole.ADMIN ? (
+                    <CardAction>
+                      <DeleteTournamentButton
+                        tournamentSlug={tournament.slug}
+                        tournamentName={tournament.name}
+                        iconOnly
+                      />
+                    </CardAction>
+                  ) : null}
+                  <div className="flex items-start justify-between gap-3 pr-2">
                     <div>
                       <CardTitle className="text-xl">{tournament.name}</CardTitle>
                       <CardDescription className="font-mono text-xs">
@@ -147,95 +157,17 @@ export default async function DashboardPage() {
                     <span>{tournament._count.players} players</span>
                     <span>Format: {TOURNAMENT_FORMAT_LABEL[tournament.format]}</span>
                   </div>
-                  <div className="flex flex-wrap gap-2 border-t border-border/60 pt-4">
-                    {userRole === UserRole.ADMIN ? (
-                      <Link
-                        href={ROUTES.admin(tournament.slug)}
-                        className={cn(
-                          buttonVariants({ variant: "default", size: "sm" }),
-                          "min-h-11 touch-manipulation px-4 sm:min-h-9",
-                        )}
-                      >
-                        Manage auction
-                      </Link>
-                    ) : (
-                      <Link
-                        href={ROUTES.owner(tournament.slug)}
-                        className={cn(
-                          buttonVariants({ variant: "default", size: "sm" }),
-                          "min-h-11 touch-manipulation px-4 sm:min-h-9",
-                        )}
-                      >
-                        My Team
-                      </Link>
-                    )}
-                    <Link
-                      href={ROUTES.tv(tournament.slug)}
-                      className={cn(
-                        buttonVariants({ variant: "secondary", size: "sm" }),
-                        "min-h-11 touch-manipulation px-4 sm:min-h-9",
-                      )}
-                    >
-                      Live board
-                    </Link>
-                    {userRole === UserRole.ADMIN ? (
-                      <Link
-                        href={ROUTES.categories(tournament.slug)}
-                        className={cn(
-                          buttonVariants({ variant: "outline", size: "sm" }),
-                          "min-h-11 touch-manipulation px-4 sm:min-h-9",
-                        )}
-                      >
-                        Roster groups
-                      </Link>
-                    ) : null}
+                  <div className="border-t border-border/60 pt-4">
                     <Link
                       href={ROUTES.tournament(tournament.slug)}
                       className={cn(
-                        buttonVariants({ variant: "outline", size: "sm" }),
-                        "min-h-11 touch-manipulation px-4 sm:min-h-9",
+                        buttonVariants({ variant: "default", size: "sm" }),
+                        "min-h-11 w-full touch-manipulation justify-center px-4 sm:min-h-9",
                       )}
                     >
-                      Home
+                      Enter
                     </Link>
-                    {userRole === UserRole.ADMIN ? (
-                      <>
-                        <Link
-                          href={ROUTES.teams(tournament.slug)}
-                          className={cn(
-                            buttonVariants({ variant: "outline", size: "sm" }),
-                            "min-h-11 touch-manipulation px-4 sm:min-h-9",
-                          )}
-                        >
-                          Teams
-                        </Link>
-                        <Link
-                          href={ROUTES.players(tournament.slug)}
-                          className={cn(
-                            buttonVariants({ variant: "outline", size: "sm" }),
-                            "min-h-11 touch-manipulation px-4 sm:min-h-9",
-                          )}
-                        >
-                          Players
-                        </Link>
-                        <Link
-                          href={ROUTES.rules(tournament.slug)}
-                          className={cn(
-                            buttonVariants({ variant: "outline", size: "sm" }),
-                            "min-h-11 touch-manipulation px-4 sm:min-h-9",
-                          )}
-                        >
-                          Rules
-                        </Link>
-                      </>
-                    ) : null}
                   </div>
-                  {userRole === UserRole.ADMIN ? (
-                    <DeleteTournamentButton
-                      tournamentSlug={tournament.slug}
-                      tournamentName={tournament.name}
-                    />
-                  ) : null}
                 </CardContent>
               </Card>
             ))

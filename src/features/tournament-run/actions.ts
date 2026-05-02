@@ -29,6 +29,7 @@ export async function updateMatchStateAction(input: unknown): Promise<ActionResu
     await updateFixtureMatchState({ actorUserId: user.id, ...parsed.data });
     revalidatePath(`/tournament/${parsed.data.tournamentSlug}/run`);
     revalidatePath(`/tournament/${parsed.data.tournamentSlug}/fixtures`);
+    revalidatePath(`/tournament/${parsed.data.tournamentSlug}/leaderboard`);
     return { ok: true };
   } catch (error) {
     return handle(error);
@@ -48,6 +49,7 @@ export async function toggleTeamEliminationAction(input: unknown): Promise<Actio
     });
     revalidatePath(`/tournament/${parsed.data.tournamentSlug}/run`);
     revalidatePath(`/tournament/${parsed.data.tournamentSlug}/fixtures`);
+    revalidatePath(`/tournament/${parsed.data.tournamentSlug}/leaderboard`);
     return { ok: true };
   } catch (error) {
     return handle(error);
@@ -67,6 +69,7 @@ export async function togglePlayerEliminationAction(input: unknown): Promise<Act
     });
     revalidatePath(`/tournament/${parsed.data.tournamentSlug}/run`);
     revalidatePath(`/tournament/${parsed.data.tournamentSlug}/fixtures`);
+    revalidatePath(`/tournament/${parsed.data.tournamentSlug}/leaderboard`);
     return { ok: true };
   } catch (error) {
     return handle(error);

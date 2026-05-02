@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -21,12 +22,14 @@ interface DeleteTournamentButtonProps {
   tournamentSlug: string;
   tournamentName: string;
   className?: string;
+  iconOnly?: boolean;
 }
 
 export function DeleteTournamentButton({
   tournamentSlug,
   tournamentName,
   className,
+  iconOnly = false,
 }: DeleteTournamentButtonProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -54,16 +57,21 @@ export function DeleteTournamentButton({
       <Button
         type="button"
         variant="outline"
+        size={iconOnly ? "icon-sm" : "default"}
         className={cn(
-          "min-h-11 w-full touch-manipulation border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto",
+          iconOnly
+            ? "size-8 min-h-8 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            : "min-h-11 w-full touch-manipulation border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto",
           className,
         )}
+        aria-label={iconOnly ? `Delete ${tournamentName}` : undefined}
+        title={iconOnly ? `Delete ${tournamentName}` : undefined}
         onClick={() => {
           setError(null);
           setOpen(true);
         }}
       >
-        Delete tournament
+        {iconOnly ? <Trash2Icon aria-hidden /> : "Delete tournament"}
       </Button>
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent className="sm:max-w-md" size="default">

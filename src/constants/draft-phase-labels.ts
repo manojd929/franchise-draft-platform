@@ -8,5 +8,5 @@ export const DRAFT_PHASE_LABEL: Record<DraftPhase, string> = {
   PAUSED: "Paused",
   FROZEN: "Stopped",
   LOCKED: "Locked",
-  COMPLETED: "Finished",
+  COMPLETED: "Auction complete",
 };
