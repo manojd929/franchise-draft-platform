@@ -13,6 +13,8 @@ import {
 import { DeleteTournamentButton } from "@/features/dashboard/delete-tournament-button";
 import { APP_NAME, ROUTES } from "@/constants/app";
 import { DRAFT_PHASE_LABEL } from "@/constants/draft-phase-labels";
+import { TOURNAMENT_FORMAT_LABEL } from "@/constants/tournament-format-labels";
+import { UserRole } from "@/generated/prisma/enums";
 import {
   tournamentDashboardListSelect,
   type TournamentDashboardListRow,
@@ -31,15 +33,41 @@ export default async function DashboardPage() {
 
   let tournaments: TournamentDashboardListRow[] = [];
   let loadError: string | null = null;
+  let userRole: typeof UserRole.ADMIN | typeof UserRole.OWNER | null = null;
   try {
-    tournaments = await prisma.tournament.findMany({
-      where: {
-        deletedAt: null,
-        createdById: user.id,
-      },
-      orderBy: { updatedAt: "desc" },
-      select: tournamentDashboardListSelect,
+    const profile = await prisma.userProfile.findFirst({
+      where: { id: user.id, deletedAt: null },
+      select: { role: true },
     });
+    userRole =
+      profile?.role === UserRole.ADMIN || profile?.role === UserRole.OWNER
+        ? profile.role
+        : null;
+
+    if (userRole === UserRole.ADMIN) {
+      tournaments = await prisma.tournament.findMany({
+        where: {
+          deletedAt: null,
+          createdById: user.id,
+        },
+        orderBy: { updatedAt: "desc" },
+        select: tournamentDashboardListSelect,
+      });
+    } else if (userRole === UserRole.OWNER) {
+      tournaments = await prisma.tournament.findMany({
+        where: {
+          deletedAt: null,
+          teams: {
+            some: {
+              deletedAt: null,
+              ownerUserId: user.id,
+            },
+          },
+        },
+        orderBy: { updatedAt: "desc" },
+        select: tournamentDashboardListSelect,
+      });
+    }
   } catch {
     loadError =
       "DraftForge couldn't reach live data right now. Check back shortly, or contact your administrator if this continues.";
@@ -52,20 +80,22 @@ export default async function DashboardPage() {
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground sm:tracking-[0.2em]">
             {APP_NAME}
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Your tournaments</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl" data-testid="dashboard-title">Your tournaments</h1>
           <p className="mt-2 text-sm text-muted-foreground sm:text-base">
             Build rosters before auction day — then Manage auction and Live board are your two live-room links.
           </p>
         </div>
-        <Link
-          href={ROUTES.tournamentNew}
-          className={cn(
-            buttonVariants(),
-            "min-h-11 w-full touch-manipulation justify-center sm:w-auto",
-          )}
-        >
-          New tournament
-        </Link>
+        {userRole === UserRole.ADMIN ? (
+          <Link
+            href={ROUTES.tournamentNew}
+            className={cn(
+              buttonVariants(),
+              "min-h-11 w-full touch-manipulation justify-center sm:w-auto",
+            )}
+          >
+            New tournament
+          </Link>
+        ) : null}
       </header>
 
       {loadError ? (
@@ -82,14 +112,18 @@ export default async function DashboardPage() {
               <CardHeader>
                 <CardTitle>No tournaments yet</CardTitle>
                 <CardDescription>
-                  Create one tournament. Then add teams, owners, and players before the auction.
+                  {userRole === UserRole.ADMIN
+                    ? "Create one tournament. Then add teams, owners, and players before the auction."
+                    : "No tournaments are assigned to your owner account yet. Ask your administrator to assign your team."}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Link href={ROUTES.tournamentNew} className={cn(buttonVariants())}>
-                  Create tournament
-                </Link>
-              </CardContent>
+              {userRole === UserRole.ADMIN ? (
+                <CardContent>
+                  <Link href={ROUTES.tournamentNew} className={cn(buttonVariants())}>
+                    Create tournament
+                  </Link>
+                </CardContent>
+              ) : null}
             </Card>
           ) : (
             tournaments.map((tournament) => (
@@ -111,17 +145,30 @@ export default async function DashboardPage() {
                   <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                     <span>{tournament._count.teams} teams</span>
                     <span>{tournament._count.players} players</span>
+                    <span>Format: {TOURNAMENT_FORMAT_LABEL[tournament.format]}</span>
                   </div>
                   <div className="flex flex-wrap gap-2 border-t border-border/60 pt-4">
-                    <Link
-                      href={ROUTES.admin(tournament.slug)}
-                      className={cn(
-                        buttonVariants({ variant: "default", size: "sm" }),
-                        "min-h-11 touch-manipulation px-4 sm:min-h-9",
-                      )}
-                    >
-                      Manage auction
-                    </Link>
+                    {userRole === UserRole.ADMIN ? (
+                      <Link
+                        href={ROUTES.admin(tournament.slug)}
+                        className={cn(
+                          buttonVariants({ variant: "default", size: "sm" }),
+                          "min-h-11 touch-manipulation px-4 sm:min-h-9",
+                        )}
+                      >
+                        Manage auction
+                      </Link>
+                    ) : (
+                      <Link
+                        href={ROUTES.owner(tournament.slug)}
+                        className={cn(
+                          buttonVariants({ variant: "default", size: "sm" }),
+                          "min-h-11 touch-manipulation px-4 sm:min-h-9",
+                        )}
+                      >
+                        My Team
+                      </Link>
+                    )}
                     <Link
                       href={ROUTES.tv(tournament.slug)}
                       className={cn(
@@ -131,15 +178,17 @@ export default async function DashboardPage() {
                     >
                       Live board
                     </Link>
-                    <Link
-                      href={ROUTES.categories(tournament.slug)}
-                      className={cn(
-                        buttonVariants({ variant: "outline", size: "sm" }),
-                        "min-h-11 touch-manipulation px-4 sm:min-h-9",
-                      )}
-                    >
-                      Roster groups
-                    </Link>
+                    {userRole === UserRole.ADMIN ? (
+                      <Link
+                        href={ROUTES.categories(tournament.slug)}
+                        className={cn(
+                          buttonVariants({ variant: "outline", size: "sm" }),
+                          "min-h-11 touch-manipulation px-4 sm:min-h-9",
+                        )}
+                      >
+                        Roster groups
+                      </Link>
+                    ) : null}
                     <Link
                       href={ROUTES.tournament(tournament.slug)}
                       className={cn(
@@ -149,38 +198,44 @@ export default async function DashboardPage() {
                     >
                       Home
                     </Link>
-                    <Link
-                      href={ROUTES.teams(tournament.slug)}
-                      className={cn(
-                        buttonVariants({ variant: "outline", size: "sm" }),
-                        "min-h-11 touch-manipulation px-4 sm:min-h-9",
-                      )}
-                    >
-                      Teams
-                    </Link>
-                    <Link
-                      href={ROUTES.players(tournament.slug)}
-                      className={cn(
-                        buttonVariants({ variant: "outline", size: "sm" }),
-                        "min-h-11 touch-manipulation px-4 sm:min-h-9",
-                      )}
-                    >
-                      Players
-                    </Link>
-                    <Link
-                      href={ROUTES.rules(tournament.slug)}
-                      className={cn(
-                        buttonVariants({ variant: "outline", size: "sm" }),
-                        "min-h-11 touch-manipulation px-4 sm:min-h-9",
-                      )}
-                    >
-                      Rules
-                    </Link>
+                    {userRole === UserRole.ADMIN ? (
+                      <>
+                        <Link
+                          href={ROUTES.teams(tournament.slug)}
+                          className={cn(
+                            buttonVariants({ variant: "outline", size: "sm" }),
+                            "min-h-11 touch-manipulation px-4 sm:min-h-9",
+                          )}
+                        >
+                          Teams
+                        </Link>
+                        <Link
+                          href={ROUTES.players(tournament.slug)}
+                          className={cn(
+                            buttonVariants({ variant: "outline", size: "sm" }),
+                            "min-h-11 touch-manipulation px-4 sm:min-h-9",
+                          )}
+                        >
+                          Players
+                        </Link>
+                        <Link
+                          href={ROUTES.rules(tournament.slug)}
+                          className={cn(
+                            buttonVariants({ variant: "outline", size: "sm" }),
+                            "min-h-11 touch-manipulation px-4 sm:min-h-9",
+                          )}
+                        >
+                          Rules
+                        </Link>
+                      </>
+                    ) : null}
                   </div>
-                  <DeleteTournamentButton
-                    tournamentSlug={tournament.slug}
-                    tournamentName={tournament.name}
-                  />
+                  {userRole === UserRole.ADMIN ? (
+                    <DeleteTournamentButton
+                      tournamentSlug={tournament.slug}
+                      tournamentName={tournament.name}
+                    />
+                  ) : null}
                 </CardContent>
               </Card>
             ))

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import {
   PickLimitsGuidance,
@@ -6,8 +6,10 @@ import {
 } from "@/features/tournaments/pick-limits-guidance";
 import { SquadRulesAutoFillButton } from "@/features/tournaments/squad-rules-auto-fill-button";
 import { SquadRulesForm } from "@/features/tournaments/squad-rules-form";
+import { RosterCategoryPill } from "@/features/roster/roster-category-pill";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireTournamentAccess } from "@/lib/data/tournament-access";
+import { getTournamentBySlug } from "@/lib/data/tournament-access";
 import {
   rosterCategoryOrderIds,
 } from "@/lib/squad-rules/compute-per-team-caps";
@@ -27,7 +29,11 @@ export default async function RulesPage({ params }: PageProps) {
     redirect(`/login?next=/tournament/${slug}/rules`);
   }
 
-  const tournament = await requireTournamentAccess(slug, user.id);
+  const tournament = await getTournamentBySlug(slug);
+  if (!tournament) {
+    notFound();
+  }
+  const isCommissioner = tournament.createdById === user.id;
 
   const [categories, squadRulesRaw, teamCount, groupedPlayers] = await Promise.all([
     prisma.rosterCategory.findMany({
@@ -124,18 +130,44 @@ export default async function RulesPage({ params }: PageProps) {
             teams⌋ defaults.
           </p>
         </div>
-        <SquadRulesAutoFillButton tournamentSlug={slug} />
+        {isCommissioner ? <SquadRulesAutoFillButton tournamentSlug={slug} /> : null}
       </header>
 
-      <SquadRulesForm
-        tournamentSlug={slug}
-        rosterSummary={{
-          teamCount,
-          playersPerCategory,
-          categoryFitRows: categoryRows,
-        }}
-        initialRules={initialRules}
-      />
+      {isCommissioner ? (
+        <SquadRulesForm
+          tournamentSlug={slug}
+          rosterSummary={{
+            teamCount,
+            playersPerCategory,
+            categoryFitRows: categoryRows,
+          }}
+          initialRules={initialRules}
+        />
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-border/70 bg-card/40 p-4 backdrop-blur-md sm:p-6">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Roster group</TableHead>
+                <TableHead className="text-right">Max picks per team</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {initialRules.map((rule) => (
+                <TableRow key={rule.rosterCategoryId}>
+                  <TableCell>
+                    <RosterCategoryPill
+                      name={rule.rosterCategoryName}
+                      colorHex={rule.rosterCategoryColorHex}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right font-medium">{rule.maxCount}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       <PickLimitsGuidance
         teamCount={teamCount}

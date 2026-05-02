@@ -71,6 +71,7 @@ export function TvDisplayClient({ slug, initialSnapshot }: TvDisplayClientProps)
 
   const activeTeam = currentTurnTeamId ? teamsById[currentTurnTeamId] : null;
   const live = snapshot.draftPhase === DraftPhase.LIVE;
+  const completed = snapshot.draftPhase === DraftPhase.COMPLETED;
 
   const progressDenominator =
     snapshot.draftSlotsTotal > 0 ? snapshot.draftSlotsTotal : 1;
@@ -137,19 +138,21 @@ export function TvDisplayClient({ slug, initialSnapshot }: TvDisplayClientProps)
 
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm backdrop-blur-sm sm:p-5 dark:border-white/12 dark:bg-black/40 dark:shadow-[0_0_80px_-40px_rgba(56,189,248,0.35)]">
               <div className="flex flex-wrap items-end justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-[11px] dark:text-white/50">
-                    On the clock
-                  </p>
-                  <p
-                    className={cn(
-                      "mt-1 text-[clamp(1.1rem,4.5vw,1.95rem)] font-bold leading-tight md:text-[clamp(1.25rem,2.4vw,2rem)]",
-                      live ? "text-foreground dark:text-white" : "text-muted-foreground dark:text-white/45",
-                    )}
-                  >
-                    {activeTeam?.name ?? "—"}
-                  </p>
-                </div>
+                {!completed ? (
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-[11px] dark:text-white/50">
+                      On the clock
+                    </p>
+                    <p
+                      className={cn(
+                        "mt-1 text-[clamp(1.1rem,4.5vw,1.95rem)] font-bold leading-tight md:text-[clamp(1.25rem,2.4vw,2rem)]",
+                        live ? "text-foreground dark:text-white" : "text-muted-foreground dark:text-white/45",
+                      )}
+                    >
+                      {activeTeam?.name ?? "—"}
+                    </p>
+                  </div>
+                ) : null}
                 <div className="shrink-0 text-right">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-[11px] dark:text-white/50">
                     Draft progress
@@ -174,7 +177,7 @@ export function TvDisplayClient({ slug, initialSnapshot }: TvDisplayClientProps)
         </div>
       </header>
 
-      {snapshot.lastConfirmedPick ? (
+      {snapshot.lastConfirmedPick && !completed ? (
         <section className="relative z-10 border-b border-emerald-200 bg-emerald-50/90 px-3 py-5 text-foreground sm:px-6 md:px-8 dark:border-emerald-500/20 dark:bg-emerald-950/35 dark:text-white">
           <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:gap-4 md:max-w-[1920px] md:flex-row md:items-center md:gap-10 lg:gap-12">
             <p className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-800 sm:text-[11px] dark:text-emerald-200/95">

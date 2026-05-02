@@ -1,27 +1,3 @@
-/**
- * Demo tournament: two franchised teams with owners + twenty men's intermediate pool players.
- *
- * Intended for **local or staging** provisioning only. Run manually; never from Vercel build.
- *
- * Required env:
- * - DATABASE_URL
- * - NEXT_PUBLIC_SUPABASE_URL
- * - SUPABASE_SERVICE_ROLE_KEY
- *
- * Optional env (defaults suit local demo accounts):
- * - DEMO_SEED_COMMISSIONER_EMAIL / DEMO_SEED_COMMISSIONER_PASSWORD
- * - DEMO_SEED_OWNER_1_EMAIL / DEMO_SEED_OWNER_1_PASSWORD
- * - DEMO_SEED_OWNER_2_EMAIL / DEMO_SEED_OWNER_2_PASSWORD
- * - DEMO_SEED_TOURNAMENT_NAME (default: Demo Two-Owner League)
- * - NEXT_PUBLIC_APP_ORIGIN: printed hub URLs (default http://localhost:3000)
- *
- * Credential printing:
- * - DEMO_SEED_PRINT_CREDENTIALS=1: always print passwords to stdout
- * - DEMO_SEED_PRINT_CREDENTIALS=0: never print passwords (recommended for shared logs / CI)
- * - If unset: passwords print only when NODE_ENV !== "production"
- *
- * Run: npm run seed:demo-tournament
- */
 import "dotenv/config";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -35,70 +11,48 @@ import {
   syncOwnerPlayersForTournament,
 } from "@/services/tournament-service";
 
-const POOL_PLAYER_COUNT = 20;
-
-const DEFAULT_COMMISSIONER_EMAIL = "commissioner-demo@draftforge.local";
-const DEFAULT_COMMISSIONER_PASSWORD = "DemoCommissioner2026!";
-const DEFAULT_OWNER_1_EMAIL = "owner1-demo@draftforge.local";
-const DEFAULT_OWNER_1_PASSWORD = "DemoOwner1!Pass";
-const DEFAULT_OWNER_2_EMAIL = "owner2-demo@draftforge.local";
-const DEFAULT_OWNER_2_PASSWORD = "DemoOwner2!Pass";
-const DEFAULT_TOURNAMENT_NAME = "Demo Two-Owner League";
-
-/** Caps full-directory scans when resolving existing Auth users by email. */
+const DEFAULT_TOURNAMENT_NAME = "Sunday Badminton League - QA";
 const MAX_AUTH_LIST_PAGES = 50;
 
+const QA_ADMIN = {
+  email: "qa.admin@example.com",
+  password: "QaAdmin@2026",
+  displayName: "QA Admin",
+} as const;
+
+const QA_OWNERS = [
+  { email: "ravi.qa@example.com", password: "RaviQa@2026", displayName: "Ravi", teamName: "QA Smash Bros" },
+  { email: "karthik.qa@example.com", password: "KarthikQa@2026", displayName: "Karthik", teamName: "QA Net Ninjas" },
+  { email: "ankit.qa@example.com", password: "AnkitQa@2026", displayName: "Ankit", teamName: "QA Shuttle Squad" },
+  { email: "rohit.qa@example.com", password: "RohitQa@2026", displayName: "Rohit", teamName: "QA Drop Shot Kings" },
+] as const;
+
+const QA_PLAYER_BASE_NAMES = [
+  "Rahul","Arjun","Vikram","Sandeep","Prakash","Nikhil","Varun","Abhishek","Deepak","Manoj",
+  "Shreyas","Ajay","Saurav","Amit","Naveen","Tarun","Harish","Vignesh","Ganesh","Sunil",
+  "Ramesh","Imran","Faizan","Sameer","Kunal","Pavan","Raghav","Siddharth","Tejas","Mohit",
+  "Aditya","Karthik","Rohit","Ankit","Vivek","Lokesh","Pranav","Srinath","Dinesh","Jagadeesh",
+  "Yash","Ritwik","Ashwin","Murali","Sai","Pradeep","Rohit","Shubham","Aakash","Hemant",
+  "Naveen","Sanjay","Krishna","Bharath","Nitin","Uday","Ravi","Jatin","Kishore","Vasu",
+  "Hitesh","Niraj","Dhruv","Parth","Harsha","Lakshman","Anirudh","Chirag","Rupesh","Tanish",
+  "Yogesh","Prem","Saketh","Arvind","Suhas","Ronit","Mayank","Girish","Naresh","Suraj",
+] as const;
+
 function requireEnv(name: string): string {
-  const v = process.env[name]?.trim();
-  if (!v) {
+  const value = process.env[name]?.trim();
+  if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
-  return v;
-}
-
-function resolveDemoCredentials(): {
-  commissionerEmail: string;
-  commissionerPassword: string;
-  owner1Email: string;
-  owner1Password: string;
-  owner2Email: string;
-  owner2Password: string;
-  tournamentName: string;
-} {
-  return {
-    commissionerEmail:
-      process.env.DEMO_SEED_COMMISSIONER_EMAIL?.trim() || DEFAULT_COMMISSIONER_EMAIL,
-    commissionerPassword:
-      process.env.DEMO_SEED_COMMISSIONER_PASSWORD?.trim() || DEFAULT_COMMISSIONER_PASSWORD,
-    owner1Email: process.env.DEMO_SEED_OWNER_1_EMAIL?.trim() || DEFAULT_OWNER_1_EMAIL,
-    owner1Password: process.env.DEMO_SEED_OWNER_1_PASSWORD?.trim() || DEFAULT_OWNER_1_PASSWORD,
-    owner2Email: process.env.DEMO_SEED_OWNER_2_EMAIL?.trim() || DEFAULT_OWNER_2_EMAIL,
-    owner2Password: process.env.DEMO_SEED_OWNER_2_PASSWORD?.trim() || DEFAULT_OWNER_2_PASSWORD,
-    tournamentName:
-      process.env.DEMO_SEED_TOURNAMENT_NAME?.trim() || DEFAULT_TOURNAMENT_NAME,
-  };
-}
-
-function shouldPrintCredentialsToStdout(): boolean {
-  const explicit = process.env.DEMO_SEED_PRINT_CREDENTIALS?.trim();
-  if (explicit === "1") return true;
-  if (explicit === "0") return false;
-  return process.env.NODE_ENV !== "production";
+  return value;
 }
 
 function createServiceRoleClient(url: string, serviceKey: string): SupabaseClient {
   return createClient(url, serviceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+    auth: { autoRefreshToken: false, persistSession: false },
   });
 }
 
-async function findAuthUserIdByEmail(
-  admin: SupabaseClient,
-  emailNormalized: string,
-): Promise<string | null> {
+async function findAuthUserIdByEmail(admin: SupabaseClient, email: string): Promise<string | null> {
   let page = 1;
   const perPage = 200;
 
@@ -106,9 +60,7 @@ async function findAuthUserIdByEmail(
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
     if (error) throw error;
 
-    const hit = data.users.find(
-      (u) => u.email?.toLowerCase() === emailNormalized.toLowerCase(),
-    );
+    const hit = data.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
     if (hit) return hit.id;
 
     if (data.users.length < perPage) break;
@@ -116,6 +68,40 @@ async function findAuthUserIdByEmail(
   }
 
   return null;
+}
+
+async function ensureProfileByEmail(params: {
+  authUserId: string;
+  email: string;
+  role: UserRole;
+  displayName: string;
+}): Promise<void> {
+  const existingByEmail = await prisma.userProfile.findUnique({ where: { email: params.email } });
+
+  if (existingByEmail && existingByEmail.id !== params.authUserId) {
+    await prisma.userProfile.update({
+      where: { id: existingByEmail.id },
+      data: {
+        email: `${existingByEmail.id}.relinked.${params.email}`,
+      },
+    });
+  }
+
+  await prisma.userProfile.upsert({
+    where: { id: params.authUserId },
+    create: {
+      id: params.authUserId,
+      email: params.email,
+      displayName: params.displayName,
+      role: params.role,
+    },
+    update: {
+      email: params.email,
+      displayName: params.displayName,
+      role: params.role,
+      deletedAt: null,
+    },
+  });
 }
 
 async function ensureAuthUserWithProfile(params: {
@@ -128,26 +114,18 @@ async function ensureAuthUserWithProfile(params: {
   const existingId = await findAuthUserIdByEmail(params.admin, params.email);
 
   if (existingId) {
-    const { error: updErr } = await params.admin.auth.admin.updateUserById(existingId, {
-      password: params.password,
+    const { error } = await params.admin.auth.admin.updateUserById(existingId, {
       email_confirm: true,
+      password: params.password,
       user_metadata: { full_name: params.displayName },
     });
-    if (updErr) throw updErr;
+    if (error) throw error;
 
-    await prisma.userProfile.upsert({
-      where: { id: existingId },
-      create: {
-        id: existingId,
-        email: params.email,
-        displayName: params.displayName,
-        role: params.role,
-      },
-      update: {
-        email: params.email,
-        displayName: params.displayName,
-        role: params.role,
-      },
+    await ensureProfileByEmail({
+      authUserId: existingId,
+      email: params.email,
+      role: params.role,
+      displayName: params.displayName,
     });
 
     return existingId;
@@ -159,169 +137,173 @@ async function ensureAuthUserWithProfile(params: {
     email_confirm: true,
     user_metadata: { full_name: params.displayName },
   });
-
   if (error) throw error;
-  if (!data.user) {
-    throw new Error(`Supabase Admin did not return a user for ${params.email}`);
-  }
+  if (!data.user) throw new Error(`Supabase Admin did not return a user for ${params.email}`);
 
-  const id = data.user.id;
-
-  await prisma.userProfile.upsert({
-    where: { id },
-    create: {
-      id,
-      email: params.email,
-      displayName: params.displayName,
-      role: params.role,
-    },
-    update: {
-      email: params.email,
-      displayName: params.displayName,
-      role: params.role,
-    },
+  await ensureProfileByEmail({
+    authUserId: data.user.id,
+    email: params.email,
+    role: params.role,
+    displayName: params.displayName,
   });
 
-  return id;
+  return data.user.id;
 }
 
-async function seedPoolPlayers(
-  tournamentId: string,
-  rosterCategoryId: string,
-): Promise<void> {
-  await prisma.player.createMany({
-    data: Array.from({ length: POOL_PLAYER_COUNT }, (_, index) => {
-      const n = String(index + 1).padStart(2, "0");
-      return {
-        tournamentId,
-        name: `Pool Player ${n}`,
-        rosterCategoryId,
-        gender: Gender.MALE,
-      };
-    }),
+async function ensureTournament(commissionerId: string, name: string): Promise<{ id: string; slug: string }> {
+  const existing = await prisma.tournament.findFirst({
+    where: { name, deletedAt: null },
+    select: { id: true, slug: true },
+    orderBy: { createdAt: "desc" },
   });
+
+  if (existing) return existing;
+
+  const { slug } = await createTournament(commissionerId, { name, picksPerTeam: 20 });
+  const created = await prisma.tournament.findFirst({
+    where: { slug, deletedAt: null },
+    select: { id: true, slug: true },
+  });
+
+  if (!created) throw new Error("Tournament was not found immediately after create.");
+  return created;
+}
+
+async function ensureTeam(tournamentSlug: string, commissionerId: string, name: string, ownerUserId: string): Promise<void> {
+  const tournament = await prisma.tournament.findFirst({ where: { slug: tournamentSlug, deletedAt: null }, select: { id: true } });
+  if (!tournament) throw new Error("Tournament missing when ensuring teams.");
+
+  const existing = await prisma.team.findFirst({
+    where: { tournamentId: tournament.id, name, deletedAt: null },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    await createTeam(commissionerId, { tournamentSlug, name, ownerUserId });
+    return;
+  }
+
+  await prisma.team.update({ where: { id: existing.id }, data: { ownerUserId } });
+}
+
+function buildQaPlayers(): Array<{ name: string; tag: string }> {
+  return QA_PLAYER_BASE_NAMES.map((name, index) => {
+    const tier = index % 3 === 0 ? "advanced" : index % 3 === 1 ? "intermediate" : "beginner";
+    return { name: `QA ${name} ${String(index + 1).padStart(2, "0")}`, tag: tier };
+  });
+}
+
+async function seedQaPlayers(tournamentId: string, rosterCategoryId: string): Promise<number> {
+  const existingNames = new Set(
+    (
+      await prisma.player.findMany({
+        where: { tournamentId, deletedAt: null },
+        select: { name: true },
+      })
+    ).map((player) => player.name),
+  );
+
+  const candidates = buildQaPlayers().filter((player) => !existingNames.has(player.name));
+
+  if (candidates.length === 0) return 0;
+
+  await prisma.player.createMany({
+    data: candidates.map((player) => ({
+      tournamentId,
+      name: player.name,
+      rosterCategoryId,
+      gender: Gender.MALE,
+      notes: `QA tag: ${player.tag}`,
+    })),
+  });
+
+  return candidates.length;
+}
+
+async function ensurePlayableRosterCategory(tournamentId: string): Promise<string> {
+  const intermediateCategory = await prisma.rosterCategory.findFirst({
+    where: { tournamentId, stableKey: "MEN_INTERMEDIATE", archivedAt: null },
+    select: { id: true },
+  });
+  if (intermediateCategory) return intermediateCategory.id;
+
+  const fallbackCategory = await prisma.rosterCategory.findFirst({
+    where: { tournamentId, archivedAt: null },
+    select: { id: true },
+    orderBy: { displayOrder: "asc" },
+  });
+  if (fallbackCategory) return fallbackCategory.id;
+
+  const createdCategory = await prisma.rosterCategory.create({
+    data: {
+      tournamentId,
+      name: "QA Open Category",
+      displayOrder: 0,
+      colorHex: "#0f766e",
+    },
+    select: { id: true },
+  });
+
+  return createdCategory.id;
 }
 
 async function main(): Promise<void> {
   if (process.env.VERCEL === "1") {
-    throw new Error(
-      "Demo seed must not run on Vercel. Run locally or from a secure maintenance host with DATABASE_URL pointed at your database.",
-    );
+    throw new Error("QA seed must not run on Vercel.");
   }
 
   requireEnv("DATABASE_URL");
   const adminUrl = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
   const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-
-  const creds = resolveDemoCredentials();
   const admin = createServiceRoleClient(adminUrl, serviceKey);
-  const printSecrets = shouldPrintCredentialsToStdout();
-
-  console.info("Provisioning demo users in Supabase Auth…");
 
   const commissionerId = await ensureAuthUserWithProfile({
     admin,
-    email: creds.commissionerEmail,
-    password: creds.commissionerPassword,
-    displayName: "Demo Commissioner",
+    email: QA_ADMIN.email,
+    password: QA_ADMIN.password,
+    displayName: QA_ADMIN.displayName,
     role: UserRole.ADMIN,
   });
 
-  const owner1Id = await ensureAuthUserWithProfile({
-    admin,
-    email: creds.owner1Email,
-    password: creds.owner1Password,
-    displayName: "Demo Owner One",
-    role: UserRole.OWNER,
-  });
+  const ownerAccounts = await Promise.all(
+    QA_OWNERS.map(async (owner) => ({
+      ...owner,
+      userId: await ensureAuthUserWithProfile({
+        admin,
+        email: owner.email,
+        password: owner.password,
+        displayName: owner.displayName,
+        role: UserRole.OWNER,
+      }),
+    })),
+  );
 
-  const owner2Id = await ensureAuthUserWithProfile({
-    admin,
-    email: creds.owner2Email,
-    password: creds.owner2Password,
-    displayName: "Demo Owner Two",
-    role: UserRole.OWNER,
-  });
+  const tournament = await ensureTournament(commissionerId, DEFAULT_TOURNAMENT_NAME);
 
-  console.info(`Creating tournament "${creds.tournamentName}"…`);
-
-  const { slug } = await createTournament(commissionerId, {
-    name: creds.tournamentName,
-    picksPerTeam: 10,
-  });
-
-  const tournament = await prisma.tournament.findFirst({
-    where: { slug, deletedAt: null },
-    select: { id: true },
-  });
-
-  if (!tournament) {
-    throw new Error("Tournament was not found immediately after create.");
+  for (const owner of ownerAccounts) {
+    await ensureTeam(tournament.slug, commissionerId, owner.teamName, owner.userId);
   }
-
-  await createTeam(commissionerId, {
-    tournamentSlug: slug,
-    name: "North Franchise",
-    ownerUserId: owner1Id,
-  });
-
-  await createTeam(commissionerId, {
-    tournamentSlug: slug,
-    name: "South Franchise",
-    ownerUserId: owner2Id,
-  });
 
   await syncOwnerPlayersForTournament(tournament.id);
 
-  const intermediateCategory = await prisma.rosterCategory.findFirst({
-    where: { tournamentId: tournament.id, stableKey: "MEN_INTERMEDIATE" },
-    select: { id: true },
-  });
-  if (!intermediateCategory) {
-    throw new Error("Men Intermediate roster category seed missing.");
-  }
-
-  console.info(`Adding ${String(POOL_PLAYER_COUNT)} men's intermediate players…`);
-  await seedPoolPlayers(tournament.id, intermediateCategory.id);
-
+  const rosterCategoryId = await ensurePlayableRosterCategory(tournament.id);
+  const insertedCount = await seedQaPlayers(tournament.id, rosterCategoryId);
   await reconcileSquadRulesForTournament(tournament.id);
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_ORIGIN?.trim() || "http://localhost:3000";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_ORIGIN?.trim() || "http://localhost:3001";
 
-  console.info("\n── Demo tournament ready ──");
-  console.info(`Slug: ${slug}`);
-  console.info(`Hub:  ${baseUrl}/tournament/${slug}`);
-  console.info(`Admin: ${baseUrl}/tournament/${slug}/admin`);
-  console.info(`Owner board: ${baseUrl}/tournament/${slug}/owner`);
-
-  if (printSecrets) {
-    console.info("\n── Logins (handle stdout like a secret; demo only) ──");
-    console.info("Commissioner (runs Admin / league setup)");
-    console.info(`  Email: ${creds.commissionerEmail}`);
-    console.info(`  Password: ${creds.commissionerPassword}`);
-    console.info("Owner 1: North Franchise");
-    console.info(`  Email: ${creds.owner1Email}`);
-    console.info(`  Password: ${creds.owner1Password}`);
-    console.info("Owner 2: South Franchise");
-    console.info(`  Email: ${creds.owner2Email}`);
-    console.info(`  Password: ${creds.owner2Password}`);
-  } else {
-    console.info(
-      "\nPasswords were not printed (DEMO_SEED_PRINT_CREDENTIALS=0 or production mode). Set DEMO_SEED_PRINT_CREDENTIALS=1 to print.",
-    );
+  console.info("\n── QA tournament ready ──");
+  console.info(`Slug: ${tournament.slug}`);
+  console.info(`Hub: ${baseUrl}/tournament/${tournament.slug}`);
+  console.info(`Admin: ${baseUrl}/tournament/${tournament.slug}/admin`);
+  console.info(`Inserted QA players this run: ${String(insertedCount)}`);
+  console.info("Admin login: qa.admin@example.com / QaAdmin@2026");
+  for (const owner of ownerAccounts) {
+    console.info(`${owner.teamName}: ${owner.email} / ${owner.password}`);
   }
-
-  console.info(
-    "\nNote: Two linked owner stub players (men advanced) are auto-created for roster rules.",
-  );
 }
 
-main()
-  .catch((err: unknown) => {
-    console.error(err);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});

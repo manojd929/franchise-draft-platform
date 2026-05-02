@@ -10,7 +10,7 @@ Built with **Next.js 16** (App Router), **React 19**, **PostgreSQL** via **Prism
 
 ### Tournaments & branding
 
-- **Slug-based hubs** (`/tournament/[slug]`): card grid to open the right surface. **Commissioners** see setup plus **Manage auction** and **Live roster board** (see [Navigation](#navigation-commissioners-vs-franchise-owners)). **Franchise participants** additionally see hub cards for **Auction board** and **Owner phone**.
+- **Slug-based hubs** (`/tournament/[slug]`): card grid to open the right surface. **Commissioners** see setup plus **Manage auction** and **Live roster board** (see [Navigation](#navigation-commissioners-vs-franchise-owners)). **Franchise owners/participants** see read-only league views plus **My Team** and a live-only **Participate in auction** card.
 - **Branding**: name, accent color (`colorHex`), optional logo uploaded to Blob when configured.
 - **Lifecycle**: commissioner creates tournaments from **Dashboard**; tournaments can be **soft-deleted**.
 - **`picksPerTeam`**: configurable roster depth for the snake schedule.
@@ -18,17 +18,19 @@ Built with **Next.js 16** (App Router), **React 19**, **PostgreSQL** via **Prism
 ### Navigation (commissioners vs franchise owners)
 
 - **Single source**: `src/lib/navigation/tournament-nav-links.ts` builds tournament chrome pills and hub card lists from whether the signed-in user is the tournament **`createdById`** commissioner.
-- **Commissioner path** (minimal, ops-focused): **Home**, **Roster groups**, **Players**, **Teams**, **Rules**, **Manage auction**, **Live roster board**. Auction board / Owner phone are **not listed**—the commissioner runs the room from Manage auction and reads the hall from the live board.
-- **Everyone else signed in** gets the commissioner set **plus** **Auction screen** and **Owner phone** for nominate flows.
-- **Routes still exist**: `/tournament/[slug]/draft` and `/tournament/[slug]/owner` are unchanged; omission is navigation and hub clarity only.
+- **Commissioner path** (ops-focused): **Home**, **Roster groups**, **All Players**, **All Teams**, **Rules**, **Manage auction**, **Live roster board**.
+- **Participant/owner path** (read + participation): **Home**, **Roster groups**, **All Players**, **All Teams**, **Rules**, **Live roster board**, **My Team**.
+- **Live participation card**: when draft phase is `LIVE` or `PAUSED`, non-commissioners also see a **Participate in auction** hub card to open `/tournament/[slug]/draft`.
+- **Routes still exist**: `/tournament/[slug]/draft` and `/tournament/[slug]/owner` remain; `/owner` is now the **My Team** roster surface.
 
 ### Access & roles
 
 - **Commissioner** (tournament `createdById`): full setup (**Teams**, **Players**, **Roster groups**, **Rules**), runs **Manage auction** (shuffle, phases, confirm/undo, overrides, spotlight), edits hub branding when logged in.
-- **Franchise owner**: separate Supabase login; nominates picks on **Auction** or **Owner** when `Team.ownerUserId` matches; cannot confirm picks.
+- **Franchise owner**: separate Supabase login; nominates picks on **Participate in auction** (`/draft`) when `Team.ownerUserId` matches; cannot confirm picks.
 - **Commissioner guardrails**: commissioner **cannot** be assigned as a team owner (`UserRole` / assignee rules in `franchise-owner-assignees`).
 - **`UserProfile.role`**: `ADMIN`, `OWNER`, `VIEWER`; league owner accounts provisioned via service role receive `OWNER`.
-- **Route protection** (`src/lib/supabase/middleware.ts` + page checks): **`/tournament/[slug]/tv`** is **public** (no login) for projector use; almost all other app/tournament URLs require Supabase session. **Teams / Players / Rules / roster groups / Manage auction** use `requireTournamentAccess` (commissioner-only).
+- **Route protection** (`src/lib/supabase/middleware.ts` + page checks): **`/tournament/[slug]/tv`** is **public** (no login) for projector use; almost all other app/tournament URLs require Supabase session. **Manage auction** remains commissioner-only. **Teams / Players / Rules / roster groups** are owner-readable and commissioner-editable.
+- **Portal admission**: only existing `UserProfile` rows with role `ADMIN` or `OWNER` are allowed to complete login/session establishment; `VIEWER` users are blocked from portal access.
 
 ### Franchise owner accounts (Supabase Admin API)
 
@@ -60,7 +62,7 @@ Eligible assignees for team ownership are derived from **`buildFranchiseOwnerAss
 ### Squad rules
 
 - **`SquadRule`**: unique per `(tournamentId, rosterCategoryId)` cap (`maxCount`).
-- **Rules page**: commissioner-only; includes pick-limit guidance (`pick-limits-guidance`), squad form, reconcile/auto-fill helpers from `reconcileSquadRulesForTournament` / squad utilities.
+- **Rules page**: signed-in users can view pick-limit guidance and current caps; commissioner can edit via squad form and reconcile/auto-fill helpers (`reconcileSquadRulesForTournament` / squad utilities).
 
 ### Draft runtime
 
@@ -77,12 +79,12 @@ Eligible assignees for team ownership are derived from **`buildFranchiseOwnerAss
 | Route | Audience | Behavior |
 |-------|----------|----------|
 | `/tournament/[slug]` | Signed-in users | Hub (cards differ for commissioner vs others) + commissioner branding edit |
-| `/tournament/[slug]/categories` | Commissioner | Roster groups (labels, colors, ordering) |
-| `/tournament/[slug]/teams` | Commissioner | CRUD teams, invite/grant franchise logins |
-| `/tournament/[slug]/players` | Commissioner | Roster CRUD, grant/revoke franchise login per row |
-| `/tournament/[slug]/rules` | Commissioner | Squad caps by roster group |
-| `/tournament/[slug]/draft` | Signed-in | Auction board filters + nominate when allowed (participant-focused UX; commissioner nav omits shortcut) |
-| `/tournament/[slug]/owner` | Signed-in | Phone-first owner view; same nominate path (participant-focused UX; commissioner nav omits shortcut) |
+| `/tournament/[slug]/categories` | Signed-in | Commissioner can manage; owners/participants read-only |
+| `/tournament/[slug]/teams` | Signed-in | Commissioner can manage; owners/participants read-only |
+| `/tournament/[slug]/players` | Signed-in | Commissioner can manage; owners/participants read-only |
+| `/tournament/[slug]/rules` | Signed-in | Commissioner can manage; owners/participants read-only |
+| `/tournament/[slug]/draft` | Signed-in | Live participation board for nomination when eligible |
+| `/tournament/[slug]/owner` | Signed-in | **My Team** card view (owner-linked row + confirmed picks, including player photos when present) |
 | `/tournament/[slug]/admin` | Commissioner | Manage auction control room |
 | `/tournament/[slug]/tv` | **Public** | Live roster board for the room |
 
@@ -254,10 +256,86 @@ Demo-only seed toggles (`DEMO_SEED_*`, `DEMO_SEED_PRINT_CREDENTIALS`) are docume
 |--------|-----|---------|
 | **Manage auction** (`/tournament/[slug]/admin`) | Commissioner | Shuffle order, phase controls, **confirm** picks, pause/skip/advance, validation overrides, roster-group spotlight when live |
 | **Live roster board** (`/tournament/[slug]/tv`) | Everyone in the room | Hall / projector view (**no login**); refreshes with draft state |
-| **Auction board** (`/tournament/[slug]/draft`) | Franchise owners (+ other signed-in participants) | Full board & filters; nominate when it is your franchise’s clock. Not linked from commissioner nav by design |
-| **Owner phone** (`/tournament/[slug]/owner`) | Franchise owner | Same nominate path as the board with phone-focused layout |
+| **Participate in auction** (`/tournament/[slug]/draft`) | Franchise owners (+ other signed-in participants) | Nomination board when it is your franchise’s clock (surfaced by hub card when auction is live/paused) |
+| **My Team** (`/tournament/[slug]/owner`) | Franchise owner | Team roster card view: owner-linked row and confirmed picks, with photos when available |
 
-Commissioners orchestrate live day from **Manage auction** plus this **Live roster board**; they do **not** need Auction / Owner shortcuts in-product (see [Navigation](#navigation-commissioners-vs-franchise-owners)).
+Commissioners orchestrate live day from **Manage auction** plus this **Live roster board**; owners use **Participate in auction** and **My Team** as needed (see [Navigation](#navigation-commissioners-vs-franchise-owners)).
+
+---
+
+## Fixtures & tournament run
+
+### Fixtures lifecycle
+
+- **Fixtures route**: `/tournament/[slug]/fixtures`
+- Fixtures unlock after draft is marked **`COMPLETED`**.
+- Commissioner can generate team round-robin ties from Fixtures.
+- Owners/participants get **read-only** fixtures + leaderboard view.
+
+### Run tournament (admin ops)
+
+- **Run route**: `/tournament/[slug]/run` (commissioner-only)
+- Purpose: live match operations after fixtures are created.
+- Admin can:
+  - update match status (`SCHEDULED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`)
+  - enter/update scores (`sideOneScore`, `sideTwoScore`)
+  - reopen/correct results by changing status away from `COMPLETED`
+  - eliminate / reinstate standings entities
+
+### Result policy
+
+- Completed match requires:
+  - both scores present
+  - non-tied score
+- Winner is derived from score (`winnerSide`), not blindly trusted from client input.
+- Current points rule: winner gets **1**, loser gets **0**.
+
+### Leaderboard/standings
+
+- Standings are **derived live** from completed matches (no manual aggregate table).
+- Sort order:
+  1. points
+  2. wins
+  3. point difference
+  4. points scored
+- Derived tracking columns:
+  - matches played
+  - wins / losses
+  - points
+  - points scored / conceded
+  - point difference
+  - eliminated status
+
+### Singles vs doubles behavior
+
+- **Doubles-only** tournaments:
+  - standings aggregate by **team**
+  - team elimination supported (`Team.isEliminated`)
+- **Singles / mixed** tournaments:
+  - standings aggregate by **player**
+  - player elimination supported (`Player.isEliminated`)
+
+### Schema updates for tournament running
+
+- `FixtureStatus` enum includes:
+  - `SCHEDULED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`
+- `Team.isEliminated` and `Player.isEliminated` booleans added.
+
+### Migration notes
+
+- Apply migrations after pulling these changes:
+
+```bash
+npm run db:migrate
+```
+
+- If dev server still reflects old Prisma shape, restart and clear build cache:
+
+```bash
+rm -rf .next
+npm run db:generate
+npm run dev
+```
 
 ---
 
@@ -286,9 +364,10 @@ prisma/            # Schema, migrations, seeds
 
 Core draft logic lives in **`src/services/draft-service.ts`**. Tournament setup and provisioning live in **`src/services/tournament-service.ts`** plus **`src/services/league-account-service.ts`** and **`src/services/roster-category-service.ts`**.
 
-### Commissioner dashboard shortcuts
+### Dashboard behavior
 
-Signed-in commissioners see **`/dashboard`** tournaments they created. Each card prioritizes **Manage auction** and **Live board**, then roster setup (**Roster groups**, **Teams**, **Players**, **Rules**, tournament **Home**) so live-day actions stay obvious.
+- **Admins** see tournaments they created, plus admin controls (create tournament, manage/setup links, delete).
+- **Owners** see tournaments where at least one team has `ownerUserId = currentUserId`; owner dashboard cards hide admin-only controls and emphasize **My Team** / viewer-safe links.
 
 ---
 

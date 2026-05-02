@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TournamentBrandingForm } from "@/features/tournaments/tournament-branding-form";
+import { TOURNAMENT_FORMAT_LABEL } from "@/constants/tournament-format-labels";
 import { getSessionUser } from "@/lib/auth/session";
 import { getTournamentBySlug } from "@/lib/data/tournament-access";
 import { tournamentHubCardsForViewer } from "@/lib/navigation/tournament-nav-links";
@@ -29,7 +30,11 @@ export default async function TournamentHubPage({ params }: PageProps) {
   const user = await getSessionUser();
   const isCommissioner = Boolean(user && user.id === tournament.createdById);
   const canEditBranding = isCommissioner;
-  const hubCards = tournamentHubCardsForViewer({ isCommissioner });
+  const hubCards = tournamentHubCardsForViewer({
+    isCommissioner,
+    draftPhase: tournament.draftPhase,
+    showFixtures: tournament.draftPhase === "COMPLETED",
+  });
   const uploadsEnabled = isLeagueImageUploadConfigured();
 
   return (
@@ -49,6 +54,9 @@ export default async function TournamentHubPage({ params }: PageProps) {
         <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
           Choose a screen
         </h2>
+        <p className="text-sm text-muted-foreground">
+          Format: <span className="font-medium text-foreground">{TOURNAMENT_FORMAT_LABEL[tournament.format]}</span>
+        </p>
         <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
           {isCommissioner ? (
             <>
@@ -60,9 +68,10 @@ export default async function TournamentHubPage({ params }: PageProps) {
           ) : (
             <>
               You can browse setup pages now. Franchise owners nominate from{" "}
-              <strong className="font-semibold text-foreground">Owner phone</strong> /{" "}
-              <strong className="font-semibold text-foreground">Auction board</strong> cards when they
-              are signed in — the commissioner works from Manage auction instead.
+              <strong className="font-semibold text-foreground">Run the auction</strong> flow, and
+              can check confirmed picks in{" "}
+              <strong className="font-semibold text-foreground">My Team</strong> when they are
+              signed in — the commissioner works from Manage auction instead.
             </>
           )}
         </p>

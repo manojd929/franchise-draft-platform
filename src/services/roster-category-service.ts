@@ -3,7 +3,8 @@ import type { Prisma } from "@/generated/prisma/client";
 import { DraftPhase } from "@/generated/prisma/enums";
 import {
   OWNER_STUB_ROSTER_CATEGORY_STABLE_KEY,
-  DEFAULT_ROSTER_CATEGORY_SEEDS,
+  getDefaultRosterCategorySeeds,
+  type TournamentFormat,
 } from "@/lib/roster/default-roster-category-seeds";
 import { prisma } from "@/lib/prisma";
 import { TournamentServiceError } from "@/services/tournament-errors";
@@ -41,8 +42,10 @@ async function assertCategoryEditorAccess(slug: string, userId: string): Promise
 export async function seedDefaultRosterCategories(
   tx: Prisma.TransactionClient,
   tournamentId: string,
+  format: TournamentFormat = "MIXED",
 ): Promise<void> {
-  for (const seed of DEFAULT_ROSTER_CATEGORY_SEEDS) {
+  const seeds = getDefaultRosterCategorySeeds(format);
+  for (const seed of seeds) {
     await tx.rosterCategory.create({
       data: {
         tournamentId,

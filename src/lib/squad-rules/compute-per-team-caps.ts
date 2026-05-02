@@ -21,13 +21,24 @@ export function computePerTeamCategoryCaps(params: {
   teamCount: number;
   categoryOrder: readonly string[];
   playersPerCategory: Partial<Record<string, number>>;
+  doublesCategoryIds?: ReadonlySet<string>;
 }): Record<string, number> {
-  const { teamCount, categoryOrder, playersPerCategory } = params;
+  const {
+    teamCount,
+    categoryOrder,
+    playersPerCategory,
+    doublesCategoryIds = new Set<string>(),
+  } = params;
   const result: Record<string, number> = {};
 
   for (const categoryId of categoryOrder) {
     const pool = playersPerCategory[categoryId] ?? 0;
     const fairShare = teamCount > 0 ? Math.floor(pool / teamCount) : 0;
+    const doublesMinimum = doublesCategoryIds.has(categoryId) ? 2 : 1;
+    if (teamCount > 0 && pool >= teamCount * doublesMinimum) {
+      result[categoryId] = Math.max(fairShare, doublesMinimum);
+      continue;
+    }
     result[categoryId] = fairShare;
   }
 

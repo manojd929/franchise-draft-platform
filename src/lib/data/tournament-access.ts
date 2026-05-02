@@ -13,6 +13,7 @@ export async function getTournamentBySlug(slug: string) {
       picksPerTeam: true,
       logoUrl: true,
       colorHex: true,
+      format: true,
       draftPhase: true,
     },
   });

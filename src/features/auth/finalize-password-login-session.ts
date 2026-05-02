@@ -29,7 +29,11 @@ export async function finalizePasswordLoginSessionWithClient(
   try {
     await syncUserProfile(user);
   } catch {
-    /* Session is valid; DB/profile sync failing should not undo sign-in. */
+    await supabase.auth.signOut();
+    return {
+      ok: false,
+      error: "This login is not allowed for this portal.",
+    };
   }
   return { ok: true };
 }

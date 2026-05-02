@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { requireSessionUser } from "@/lib/auth/session";
+import { UserRole } from "@/generated/prisma/enums";
+import { prisma } from "@/lib/prisma";
 import {
   createLeagueOwnerAccount,
   createLeagueOwnerForPlayerAccount,
@@ -105,6 +107,13 @@ export async function createTournamentAction(
     const parsed = createTournamentSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: "Invalid tournament details." };
     const user = await requireSessionUser();
+    const profile = await prisma.userProfile.findFirst({
+      where: { id: user.id, deletedAt: null },
+      select: { role: true },
+    });
+    if (!profile || profile.role !== UserRole.ADMIN) {
+      return { ok: false, error: "Only admins can create tournaments." };
+    }
     const { slug } = await createTournament(user.id, parsed.data);
     revalidatePath("/dashboard");
     return { ok: true, slug };

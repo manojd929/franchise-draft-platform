@@ -21,7 +21,8 @@ export async function GET(request: Request) {
         try {
           await syncUserProfile(user);
         } catch {
-          /* Profile sync requires DATABASE_URL; non-fatal for OAuth redirect */
+          await supabase.auth.signOut();
+          return NextResponse.redirect(`${origin}/login?error=access_denied`);
         }
       }
       return NextResponse.redirect(`${origin}${nextPath}`);

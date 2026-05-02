@@ -61,6 +61,29 @@ enum DraftLogAction {
   AUCTION_FOCUS_CATEGORY
 }
 
+enum TournamentFormat {
+  DOUBLES_ONLY
+  MIXED
+  SINGLES_ONLY
+}
+
+enum FixtureMatchType {
+  SINGLES
+  DOUBLES
+}
+
+enum FixtureStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum FixtureSide {
+  SIDE_ONE
+  SIDE_TWO
+}
+
 model UserProfile {
   id           String    @id @db.Uuid
   email        String    @unique
@@ -82,6 +105,7 @@ model Tournament {
   name                   String
   slug                   String      @unique
   description            String?
+  format                 TournamentFormat @default(DOUBLES_ONLY)
   logoUrl                String?
   colorHex               String?
   createdById            String      @db.Uuid
@@ -113,6 +137,8 @@ model Tournament {
   draftSlots    DraftOrderSlot[]
   picks         Pick[]
   draftLogs     DraftLog[]
+  fixtureTies   FixtureTie[]
+  fixtureMatches FixtureMatch[]
   pendingPlayer Player?           @relation("PendingPlayer", fields: [pendingPickPlayerId], references: [id])
   pendingTeam   Team?             @relation("PendingTeam", fields: [pendingPickTeamId], references: [id])
 
@@ -150,6 +176,7 @@ model Team {
   colorHex       String?
   ownerUserId    String?   @db.Uuid
   displayOrder   Int       @default(0)
+  isEliminated   Boolean   @default(false)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
@@ -159,6 +186,9 @@ model Team {
   draftSlots           DraftOrderSlot[]
   picks                Pick[]
   pendingPickFor       Tournament? @relation("PendingTeam")
+  fixtureTiesAsTeamOne FixtureTie[] @relation("FixtureTieTeamOne")
+  fixtureTiesAsTeamTwo FixtureTie[] @relation("FixtureTieTeamTwo")
+  fixtureParticipants  FixtureMatchParticipant[]
 
   @@index([tournamentId])
   @@index([ownerUserId])
@@ -174,6 +204,7 @@ model Player {
   notes            String?
   isUnavailable    Boolean      @default(false)
   isLocked         Boolean      @default(false)
+  isEliminated     Boolean      @default(false)
   linkedOwnerUserId String?     @db.Uuid
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
@@ -184,6 +215,7 @@ model Player {
   linkedOwner    UserProfile?    @relation("OwnerPlayerStub", fields: [linkedOwnerUserId], references: [id])
   picks          Pick[]
   pendingPickFor  Tournament?     @relation("PendingPlayer")
+  fixtureParticipants FixtureMatchParticipant[]
 
   @@unique([tournamentId, linkedOwnerUserId])
   @@index([tournamentId])
@@ -259,4 +291,62 @@ model DraftLog {
   actor      UserProfile? @relation(fields: [actorUserId], references: [id])
 
   @@index([tournamentId, createdAt])
+}
+
+model FixtureTie {
+  id            String   @id @default(uuid()) @db.Uuid
+  tournamentId  String   @db.Uuid
+  categoryLabel String?
+  roundNumber   Int?
+  sequence      Int      @default(0)
+  teamOneId     String   @db.Uuid
+  teamTwoId     String   @db.Uuid
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  teamOne    Team       @relation("FixtureTieTeamOne", fields: [teamOneId], references: [id], onDelete: Cascade)
+  teamTwo    Team       @relation("FixtureTieTeamTwo", fields: [teamTwoId], references: [id], onDelete: Cascade)
+  matches    FixtureMatch[]
+
+  @@index([tournamentId, sequence])
+}
+
+model FixtureMatch {
+  id            String          @id @default(uuid()) @db.Uuid
+  tournamentId  String          @db.Uuid
+  tieId         String?         @db.Uuid
+  categoryLabel String?
+  matchType     FixtureMatchType
+  sequence      Int             @default(0)
+  status        FixtureStatus   @default(SCHEDULED)
+  sideOneScore  Int?
+  sideTwoScore  Int?
+  winnerSide    FixtureSide?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tie        FixtureTie? @relation(fields: [tieId], references: [id], onDelete: Cascade)
+  participants FixtureMatchParticipant[]
+
+  @@index([tournamentId, sequence])
+  @@index([tieId, sequence])
+}
+
+model FixtureMatchParticipant {
+  id        String      @id @default(uuid()) @db.Uuid
+  matchId   String      @db.Uuid
+  playerId  String      @db.Uuid
+  side      FixtureSide
+  teamId    String?     @db.Uuid
+  createdAt DateTime    @default(now())
+
+  match  FixtureMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team   Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, side])
+  @@index([playerId])
+  @@index([teamId])
 }

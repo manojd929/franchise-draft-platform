@@ -259,6 +259,14 @@ export function AdminControlRoomClient({
     currentTurnTeamId !== null
       ? liveSnapshot.teams.find((t) => t.id === currentTurnTeamId) ?? null
       : null;
+  const firstRoundTeamIds = useMemo(() => {
+    const uniqueTeamCount = new Set(liveSnapshot.teams.map((team) => team.id)).size;
+    if (uniqueTeamCount === 0 || liveSnapshot.draftSlots.length === 0) return [];
+    return [...liveSnapshot.draftSlots]
+      .sort((a, b) => a.slotIndex - b.slotIndex)
+      .slice(0, uniqueTeamCount)
+      .map((slot) => slot.teamId);
+  }, [liveSnapshot.draftSlots, liveSnapshot.teams]);
 
   const spotlightSelectValue =
     liveSnapshot.auctionSpotlightRosterCategoryId ?? "OPEN";
@@ -671,6 +679,8 @@ export function AdminControlRoomClient({
                 <RandomDraftOrderShuffle
                   tournamentSlug={s}
                   teams={liveSnapshot.teams.map((t) => ({ id: t.id, name: t.name }))}
+                  finalOrderTeamIds={firstRoundTeamIds}
+                  isFirstShuffle={liveSnapshot.draftSlotsTotal === 0}
                   className="min-h-12 w-full"
                   allowShuffle={canShuffleDraftOrder}
                   unavailableReason={shuffleUnavailableReason}

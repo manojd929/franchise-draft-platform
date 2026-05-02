@@ -1,3 +1,4 @@
+import { DraftPhase } from "@/generated/prisma/enums";
 import { ROUTES } from "@/constants/app";
 
 /** Links shown in tournament shell nav (sticky header pills). */
@@ -11,26 +12,37 @@ export type TournamentChromeNavViewer = "commissioner" | "participant";
 export function tournamentChromeNavLinks(
   slug: string,
   viewer: TournamentChromeNavViewer,
+  options?: { showFixtures?: boolean },
 ): TournamentChromeNavLink[] {
-  const shared: TournamentChromeNavLink[] = [
+  const fixturesLink = options?.showFixtures
+    ? [{ href: ROUTES.fixtures(slug), label: "Fixtures" as const }]
+    : [];
+  const commissionerLinks: TournamentChromeNavLink[] = [
     { href: ROUTES.tournament(slug), label: "Home" },
     { href: ROUTES.categories(slug), label: "Roster groups" },
-    { href: ROUTES.players(slug), label: "Players" },
-    { href: ROUTES.teams(slug), label: "Teams" },
+    { href: ROUTES.players(slug), label: "All Players" },
+    { href: ROUTES.teams(slug), label: "All Teams" },
     { href: ROUTES.rules(slug), label: "Rules" },
     { href: ROUTES.admin(slug), label: "Manage auction" },
+    { href: ROUTES.run(slug), label: "Run tournament" },
     { href: ROUTES.tv(slug), label: "Live roster board" },
+    ...fixturesLink,
   ];
 
   if (viewer === "participant") {
     return [
-      ...shared,
-      { href: ROUTES.draft(slug), label: "Auction screen" },
-      { href: ROUTES.owner(slug), label: "Owner phone" },
+      { href: ROUTES.tournament(slug), label: "Home" },
+      { href: ROUTES.categories(slug), label: "Roster groups" },
+      { href: ROUTES.players(slug), label: "All Players" },
+      { href: ROUTES.teams(slug), label: "All Teams" },
+      { href: ROUTES.rules(slug), label: "Rules" },
+      { href: ROUTES.tv(slug), label: "Live roster board" },
+      { href: ROUTES.owner(slug), label: "My Team" },
+      ...fixturesLink,
     ];
   }
 
-  return shared;
+  return commissionerLinks;
 }
 
 /** Hub cards on tournament home (`/tournament/[slug]`). */
@@ -66,40 +78,97 @@ export const tournamentHubCards: TournamentHubCard[] = [
     title: "Roster groups",
     description: "Labels, tint colors, display order — what shows on every roster surface.",
   },
-  {
-    href: ROUTES.teams,
-    title: "Teams",
-    description: "Names, colors, logos, and franchise-owner logins.",
-  },
-  {
-    href: ROUTES.players,
-    title: "Players",
-    description: "Add nominees, attach photos, and sort them into roster groups.",
-  },
+    {
+      href: ROUTES.teams,
+      title: "All Teams",
+      description: "Names, colors, logos, and franchise-owner logins.",
+    },
+    {
+      href: ROUTES.players,
+      title: "All Players",
+      description: "Add nominees, attach photos, and sort them into roster groups.",
+    },
   {
     href: ROUTES.rules,
     title: "Rules",
     description: "Caps per roster group — what each franchise can roster live.",
   },
   {
-    href: ROUTES.draft,
-    title: "Auction board",
-    description: "Participant view: filtered board and nominate when you are up.",
-    participantOnly: true,
-  },
-  {
     href: ROUTES.owner,
-    title: "Owner phone",
-    description: "For franchise owners nominating during the auction (phone-friendly layout).",
+    title: "My Team",
+    description: "See only your franchise roster from confirmed picks.",
     participantOnly: true,
   },
 ];
 
 export function tournamentHubCardsForViewer(options: {
   isCommissioner: boolean;
+  draftPhase?: (typeof DraftPhase)[keyof typeof DraftPhase];
+  showFixtures?: boolean;
 }): TournamentHubCard[] {
-  if (!options.isCommissioner) {
-    return [...tournamentHubCards];
+  if (options.isCommissioner) {
+    return tournamentHubCards.filter((card) => !card.participantOnly);
   }
-  return tournamentHubCards.filter((card) => !card.participantOnly);
+
+  const participantCards: TournamentHubCard[] = [
+    {
+      href: ROUTES.categories,
+      title: "Roster groups",
+      description: "View category labels and ordering used across the auction experience.",
+    },
+    {
+      href: ROUTES.teams,
+      title: "All Teams",
+      description: "View all franchises and assigned owners in this tournament.",
+    },
+    {
+      href: ROUTES.players,
+      title: "All Players",
+      description: "Browse the player pool with roster-group assignments.",
+    },
+    {
+      href: ROUTES.rules,
+      title: "Rules",
+      description: "View roster-group pick limits used during auction validation.",
+    },
+    ...(options.showFixtures
+      ? [{
+          href: ROUTES.fixtures,
+          title: "Fixtures",
+          description: "View and manage tournament fixtures and results.",
+        } satisfies TournamentHubCard]
+      : []),
+    ...(options.showFixtures
+      ? [{
+          href: ROUTES.run,
+          title: "Run tournament",
+          description: "Update live match status, scores, winners, and standings.",
+        } satisfies TournamentHubCard]
+      : []),
+    {
+      href: ROUTES.tv,
+      title: "Live roster board",
+      description:
+        "Hall & projector view: franchises, drafted players by group, spotlight, clock, and picks — refreshes automatically.",
+      primary: true,
+    },
+    ...tournamentHubCards.filter((card) => card.participantOnly),
+  ];
+
+  const auctionLive =
+    options.draftPhase === DraftPhase.LIVE ||
+    options.draftPhase === DraftPhase.PAUSED;
+  if (!auctionLive) {
+    return participantCards;
+  }
+
+  return [
+    ...participantCards,
+    {
+      href: ROUTES.draft,
+      title: "Participate in auction",
+      description: "Nominate players during live auction rounds when it is your team's turn.",
+      primary: true,
+    },
+  ];
 }

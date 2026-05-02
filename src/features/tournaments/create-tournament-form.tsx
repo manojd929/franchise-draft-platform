@@ -28,6 +28,8 @@ export function CreateTournamentForm() {
           const playerEntryFeeRaw = String(formData.get("playerEntryFeeRupeesWhole") ?? "").trim();
           const result = await createTournamentAction({
             name: String(formData.get("name") ?? ""),
+            tournamentFormat:
+              String(formData.get("tournamentFormat") ?? "").trim() || "DOUBLES_ONLY",
             description:
               String(formData.get("description") ?? "").trim() || undefined,
             ...(picksPerTeamRaw !== ""
@@ -53,6 +55,19 @@ export function CreateTournamentForm() {
       <div className="space-y-2">
         <Label htmlFor="name">Tournament name</Label>
         <Input id="name" name="name" required minLength={2} placeholder="Manhattan Badminton Winter Cup" />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="tournament-format">Tournament format</Label>
+        <select
+          id="tournament-format"
+          name="tournamentFormat"
+          defaultValue="DOUBLES_ONLY"
+          className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="DOUBLES_ONLY">Doubles only</option>
+          <option value="MIXED">Mixed (Doubles + Singles)</option>
+          <option value="SINGLES_ONLY">Singles only</option>
+        </select>
       </div>
       <div className="space-y-2">
         <Label htmlFor="description">Notes (optional)</Label>

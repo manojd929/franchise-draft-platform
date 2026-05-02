@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const createTournamentSchema = z.object({
   name: z.string().min(2).max(120),
+  tournamentFormat: z.enum(["DOUBLES_ONLY", "MIXED", "SINGLES_ONLY"]).optional(),
   description: z.string().max(2000).optional(),
   picksPerTeam: z.number().int().min(1).max(50).optional(),
   logoUrl: z.string().url().optional().or(z.literal("")),

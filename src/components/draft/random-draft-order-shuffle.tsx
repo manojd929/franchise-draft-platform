@@ -16,6 +16,8 @@ export interface RandomDraftOrderTeam {
 interface RandomDraftOrderShuffleProps {
   tournamentSlug: string;
   teams: RandomDraftOrderTeam[];
+  finalOrderTeamIds?: string[];
+  isFirstShuffle?: boolean;
   className?: string;
   /**
    * When false, shuffle is unavailable (auction started, order locked). Still requires teams client-side.
@@ -39,12 +41,15 @@ function shuffleTeams(list: RandomDraftOrderTeam[]): RandomDraftOrderTeam[] {
 export function RandomDraftOrderShuffle({
   tournamentSlug,
   teams,
+  finalOrderTeamIds = [],
+  isFirstShuffle = false,
   className,
   allowShuffle = true,
   unavailableReason = "Shuffle is unavailable right now.",
 }: RandomDraftOrderShuffleProps) {
   const [shuffling, setShuffling] = useState(false);
   const [displayOrder, setDisplayOrder] = useState<RandomDraftOrderTeam[]>([]);
+  const [animationStage, setAnimationStage] = useState<"shuffle" | "reveal">("shuffle");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const busyRef = useRef(false);
   const teamsSnapshotRef = useRef<RandomDraftOrderTeam[]>(teams);
@@ -78,10 +83,13 @@ export function RandomDraftOrderShuffle({
     if (busyRef.current) return;
     busyRef.current = true;
     teamsSnapshotRef.current = teams;
+    setAnimationStage("shuffle");
     setDisplayOrder(shuffleTeams(teams));
     setShuffling(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1950));
+      const minimumOverlayMs = isFirstShuffle ? 3000 : 1950;
+      const sequenceStartedAt = Date.now();
+      await new Promise((resolve) => setTimeout(resolve, isFirstShuffle ? 2100 : minimumOverlayMs));
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -91,17 +99,35 @@ export function RandomDraftOrderShuffle({
         toast.error(result.error ?? "Could not randomize.");
         return;
       }
+      if (isFirstShuffle) {
+        setAnimationStage("reveal");
+        const elapsed = Date.now() - sequenceStartedAt;
+        const holdMs = Math.max(420, minimumOverlayMs - elapsed);
+        await new Promise((resolve) => setTimeout(resolve, holdMs));
+      }
       toast.success("Pick order updated.");
     } finally {
       busyRef.current = false;
       setShuffling(false);
+      setAnimationStage("shuffle");
     }
-  }, [teams, tournamentSlug]);
+  }, [isFirstShuffle, teams, tournamentSlug]);
 
   const empty = teams.length === 0;
   const blockedByFlow = !allowShuffle;
   const disabled = empty || blockedByFlow;
-  const chips = shuffling ? displayOrder : teams;
+  const orderedRevealChips =
+    finalOrderTeamIds.length > 0
+      ? finalOrderTeamIds
+          .map((teamId) => teams.find((team) => team.id === teamId))
+          .filter((team): team is RandomDraftOrderTeam => Boolean(team))
+      : teams;
+  const chips =
+    shuffling && animationStage === "shuffle"
+      ? displayOrder
+      : animationStage === "reveal"
+        ? orderedRevealChips
+        : teams;
 
   const disabledTitle = empty
     ? "Add at least one franchise before shuffling."
@@ -137,10 +163,12 @@ export function RandomDraftOrderShuffle({
               animate={{ opacity: [1, 0.72, 1] }}
               transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
             >
-              Shuffling teams…
+              {animationStage === "shuffle" ? "Shuffling teams…" : "Final draft order"}
             </motion.p>
             <p className="max-w-md text-sm text-muted-foreground">
-              Hang on. Building a new random pick order for the auction.
+              {animationStage === "shuffle"
+                ? "Hang on. Building a new random pick order for the auction."
+                : "The lottery is complete. Here is the order for round one."}
             </p>
           </div>
 
@@ -149,7 +177,7 @@ export function RandomDraftOrderShuffle({
               layout
               className="flex max-h-[45vh] max-w-[min(100%,28rem)] flex-wrap justify-center gap-2 overflow-y-auto px-1"
             >
-              {chips.map((team) => (
+              {chips.map((team, index) => (
                 <motion.span
                   key={team.id}
                   layout
@@ -158,24 +186,31 @@ export function RandomDraftOrderShuffle({
                     stiffness: 520,
                     damping: 34,
                   }}
-                  className="inline-flex max-w-[11rem] truncate rounded-full border border-primary/35 bg-primary/10 px-3 py-2 text-center text-sm font-medium text-foreground shadow-sm sm:max-w-[13rem]"
+                  className="inline-flex max-w-[12rem] items-center gap-2 truncate rounded-full border border-primary/35 bg-primary/10 px-3 py-2 text-center text-sm font-medium text-foreground shadow-sm sm:max-w-[13rem]"
                 >
+                  {animationStage === "reveal" ? (
+                    <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[11px] font-semibold">
+                      {index + 1}
+                    </span>
+                  ) : null}
                   {team.name}
                 </motion.span>
               ))}
             </motion.div>
           ) : null}
 
-          <motion.div
-            className="flex gap-2"
-            aria-hidden
-            animate={{ rotate: [0, 360] }}
-            transition={{ duration: 2.4, repeat: Infinity, ease: "linear" }}
-          >
-            <span className="size-2 rounded-full bg-primary/80" />
-            <span className="size-2 rounded-full bg-primary/50" />
-            <span className="size-2 rounded-full bg-primary/30" />
-          </motion.div>
+          {animationStage === "shuffle" ? (
+            <motion.div
+              className="flex gap-2"
+              aria-hidden
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "linear" }}
+            >
+              <span className="size-2 rounded-full bg-primary/80" />
+              <span className="size-2 rounded-full bg-primary/50" />
+              <span className="size-2 rounded-full bg-primary/30" />
+            </motion.div>
+          ) : null}
         </div>
       ) : null}
     </>

@@ -27,7 +27,8 @@ export default async function TournamentLayout({
   const user = await getSessionUser();
   const chromeViewer: TournamentChromeNavViewer =
     user?.id === tournament.createdById ? "commissioner" : "participant";
-  const links = tournamentChromeNavLinks(slug, chromeViewer);
+  const showFixtures = tournament.draftPhase === "COMPLETED";
+  const links = tournamentChromeNavLinks(slug, chromeViewer, { showFixtures });
 
   return (
     <div className="min-h-screen bg-background">

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import {
   Table,
@@ -16,7 +16,7 @@ import { TeamsSetupToolbar } from "@/features/tournaments/teams-setup-toolbar";
 import { DraftPhase } from "@/generated/prisma/enums";
 import { buildFranchiseOwnerAssigneeList } from "@/lib/data/franchise-owner-assignees";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireTournamentAccess } from "@/lib/data/tournament-access";
+import { getTournamentBySlug } from "@/lib/data/tournament-access";
 import { prisma } from "@/lib/prisma";
 import { isLeagueImageUploadConfigured } from "@/lib/uploads/league-image-blob-env";
 import { isLeagueOwnerInviteConfigured } from "@/services/league-account-service";
@@ -34,7 +34,11 @@ export default async function TeamsPage({ params }: PageProps) {
     redirect(`/login?next=/tournament/${slug}/teams`);
   }
 
-  const tournament = await requireTournamentAccess(slug, user.id);
+  const tournament = await getTournamentBySlug(slug);
+  if (!tournament) {
+    notFound();
+  }
+  const isCommissioner = tournament.createdById === user.id;
 
   const invitingSupported = isLeagueOwnerInviteConfigured();
   const uploadsEnabled = isLeagueImageUploadConfigured();
@@ -71,25 +75,29 @@ export default async function TeamsPage({ params }: PageProps) {
         </p>
       </header>
 
-      <TeamsSetupToolbar
-        tournamentSlug={slug}
-        invitingSupported={invitingSupported}
-        canInviteOwners={canInviteOwners}
-        assignablePeople={assignablePeople}
-        uploadsEnabled={uploadsEnabled}
-      />
+      {isCommissioner ? (
+        <TeamsSetupToolbar
+          tournamentSlug={slug}
+          invitingSupported={invitingSupported}
+          canInviteOwners={canInviteOwners}
+          assignablePeople={assignablePeople}
+          uploadsEnabled={uploadsEnabled}
+        />
+      ) : null}
 
-      <FranchiseOwnersSummary
-        tournamentSlug={slug}
-        invitingSupported={invitingSupported}
-        canInviteOwners={canInviteOwners}
-        assignablePeople={assignablePeople}
-        teams={teams.map((team) => ({
-          id: team.id,
-          name: team.name,
-          ownerUserId: team.ownerUserId,
-        }))}
-      />
+      {isCommissioner ? (
+        <FranchiseOwnersSummary
+          tournamentSlug={slug}
+          invitingSupported={invitingSupported}
+          canInviteOwners={canInviteOwners}
+          assignablePeople={assignablePeople}
+          teams={teams.map((team) => ({
+            id: team.id,
+            name: team.name,
+            ownerUserId: team.ownerUserId,
+          }))}
+        />
+      ) : null}
 
       <div className="overflow-x-auto rounded-xl border border-border/70 bg-card/30 backdrop-blur-md">
         <Table>
@@ -98,13 +106,13 @@ export default async function TeamsPage({ params }: PageProps) {
               <TableHead>Team</TableHead>
               <TableHead>Short name</TableHead>
               <TableHead>Owner</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              {isCommissioner ? <TableHead className="text-right">Actions</TableHead> : null}
             </TableRow>
           </TableHeader>
           <TableBody>
             {teams.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-muted-foreground">
+                <TableCell colSpan={isCommissioner ? 4 : 3} className="text-muted-foreground">
                   No franchises yet. Open <span className="font-medium">Add franchise</span> above.
                 </TableCell>
               </TableRow>
@@ -118,21 +126,41 @@ export default async function TeamsPage({ params }: PageProps) {
                       <span className="min-w-0 flex-1 text-sm leading-snug break-words">
                         {team.owner ? (team.owner.displayName ?? team.owner.email) : "-"}
                       </span>
-                      <div className="flex shrink-0 flex-wrap items-center gap-2">
-                        <TeamOwnerEditDialog
+                      {isCommissioner ? (
+                        <div className="flex shrink-0 flex-wrap items-center gap-2">
+                          <TeamOwnerEditDialog
+                            tournamentSlug={slug}
+                            assignablePeople={assignablePeople}
+                            team={{
+                              id: team.id,
+                              name: team.name,
+                              shortName: team.shortName,
+                              logoUrl: team.logoUrl,
+                              colorHex: team.colorHex,
+                              ownerUserId: team.ownerUserId,
+                            }}
+                          />
+                          <RemoveTeamOwnerButton
+                            tournamentSlug={slug}
+                            team={{
+                              id: team.id,
+                              name: team.name,
+                              shortName: team.shortName,
+                              logoUrl: team.logoUrl,
+                              colorHex: team.colorHex,
+                              ownerUserId: team.ownerUserId,
+                            }}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  </TableCell>
+                  {isCommissioner ? (
+                    <TableCell className="text-right align-middle">
+                      <div className="flex justify-end">
+                        <TeamEditDialog
                           tournamentSlug={slug}
-                          assignablePeople={assignablePeople}
-                          team={{
-                            id: team.id,
-                            name: team.name,
-                            shortName: team.shortName,
-                            logoUrl: team.logoUrl,
-                            colorHex: team.colorHex,
-                            ownerUserId: team.ownerUserId,
-                          }}
-                        />
-                        <RemoveTeamOwnerButton
-                          tournamentSlug={slug}
+                          uploadsEnabled={uploadsEnabled}
                           team={{
                             id: team.id,
                             name: team.name,
@@ -143,24 +171,8 @@ export default async function TeamsPage({ params }: PageProps) {
                           }}
                         />
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right align-middle">
-                    <div className="flex justify-end">
-                      <TeamEditDialog
-                        tournamentSlug={slug}
-                        uploadsEnabled={uploadsEnabled}
-                        team={{
-                          id: team.id,
-                          name: team.name,
-                          shortName: team.shortName,
-                          logoUrl: team.logoUrl,
-                          colorHex: team.colorHex,
-                          ownerUserId: team.ownerUserId,
-                        }}
-                      />
-                    </div>
-                  </TableCell>
+                    </TableCell>
+                  ) : null}
                 </TableRow>
               ))
             )}

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { DraftPhase, Gender } from "@/generated/prisma/enums";
+import { UserRole } from "@/generated/prisma/enums";
 import { wholeRupeesToInrMinorUnits } from "@/lib/currency/player-entry-fee";
 import { tournamentDashboardListSelect } from "@/lib/data/tournament-dashboard-list-select";
 import {
@@ -11,7 +12,10 @@ import {
   ADMIN_FRANCHISE_OWNER_AUTH_UNAVAILABLE,
   franchiseOwnerAuthRemovalFaultUserMessage,
 } from "@/lib/errors/safe-user-feedback";
-import { DEFAULT_ROSTER_CATEGORY_SQUAD_CAPS } from "@/lib/roster/default-roster-category-seeds";
+import {
+  DEFAULT_ROSTER_CATEGORY_SQUAD_CAPS,
+  isDoublesCategoryName,
+} from "@/lib/roster/default-roster-category-seeds";
 import { prisma } from "@/lib/prisma";
 import {
   formatSquadValidationErrors,
@@ -179,6 +183,14 @@ export async function createTournament(
   userId: string,
   input: CreateTournamentInput,
 ): Promise<{ slug: string }> {
+  const profile = await prisma.userProfile.findFirst({
+    where: { id: userId, deletedAt: null },
+    select: { role: true },
+  });
+  if (!profile || profile.role !== UserRole.ADMIN) {
+    throw new TournamentServiceError("Only admins can create tournaments.");
+  }
+
   const slug = tournamentSlugFromName(input.name);
   await prisma.$transaction(async (tx) => {
     const feeMinorUnits =
@@ -195,6 +207,7 @@ export async function createTournament(
         logoUrl: input.logoUrl?.trim() ? input.logoUrl.trim() : null,
         colorHex: input.colorHex?.trim() ? input.colorHex.trim() : null,
         createdById: userId,
+        format: input.tournamentFormat ?? "DOUBLES_ONLY",
         picksPerTeam: input.picksPerTeam ?? DEFAULT_PICKS_PER_TEAM,
         draftPhase: DraftPhase.SETUP,
         playerEntryFeeMinorUnits: feeMinorUnits,
@@ -202,8 +215,8 @@ export async function createTournament(
       },
     });
 
-    await seedDefaultRosterCategories(tx, tournament.id);
-
+    const tournamentFormat = input.tournamentFormat ?? "DOUBLES_ONLY";
+    await seedDefaultRosterCategories(tx, tournament.id, tournamentFormat);
     const rosterRows = await tx.rosterCategory.findMany({
       where: { tournamentId: tournament.id },
       select: { id: true, stableKey: true },
@@ -714,6 +727,11 @@ export async function reconcileSquadRulesForTournament(
     select: { id: true, displayOrder: true, name: true },
   });
   const categoryOrder = rosterCategoryOrderIds(categoryRows);
+  const doublesCategoryIds = new Set(
+    categoryRows
+      .filter((row) => isDoublesCategoryName(row.name))
+      .map((row) => row.id),
+  );
 
   const grouped = await prisma.player.groupBy({
     by: ["rosterCategoryId"],
@@ -730,6 +748,7 @@ export async function reconcileSquadRulesForTournament(
     teamCount,
     categoryOrder,
     playersPerCategory,
+    doublesCategoryIds,
   });
 
   const categoryLabels = Object.fromEntries(

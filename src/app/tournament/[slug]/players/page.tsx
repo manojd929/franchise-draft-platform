@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 
 import {
@@ -23,7 +23,7 @@ import { RevokeFranchiseLoginButton } from "@/features/tournaments/revoke-franch
 import { RosterCategoryPill } from "@/features/roster/roster-category-pill";
 import { DraftPhase } from "@/generated/prisma/enums";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireTournamentAccess } from "@/lib/data/tournament-access";
+import { getTournamentBySlug } from "@/lib/data/tournament-access";
 import { prisma } from "@/lib/prisma";
 import { isLeagueImageUploadConfigured } from "@/lib/uploads/league-image-blob-env";
 import { isLeagueOwnerInviteConfigured } from "@/services/league-account-service";
@@ -41,7 +41,11 @@ export default async function PlayersPage({ params }: PageProps) {
     redirect(`/login?next=/tournament/${slug}/players`);
   }
 
-  const tournament = await requireTournamentAccess(slug, user.id);
+  const tournament = await getTournamentBySlug(slug);
+  if (!tournament) {
+    notFound();
+  }
+  const isCommissioner = tournament.createdById === user.id;
 
   const uploadsEnabled = isLeagueImageUploadConfigured();
   const invitingSupported = isLeagueOwnerInviteConfigured();
@@ -101,12 +105,14 @@ export default async function PlayersPage({ params }: PageProps) {
 
       <PlayersCategoryDashboard rows={dashboardRows} totalPlayers={players.length} />
 
-      <PlayersSetupToolbar
-        tournamentSlug={slug}
-        uploadsEnabled={uploadsEnabled}
-        selectableCategories={selectableCategories}
-        defaultRosterCategoryId={defaultRosterCategoryId}
-      />
+      {isCommissioner ? (
+        <PlayersSetupToolbar
+          tournamentSlug={slug}
+          uploadsEnabled={uploadsEnabled}
+          selectableCategories={selectableCategories}
+          defaultRosterCategoryId={defaultRosterCategoryId}
+        />
+      ) : null}
 
       <div className="overflow-x-auto rounded-xl border border-border/70 bg-card/30 backdrop-blur-md">
         <Table>
@@ -115,13 +121,13 @@ export default async function PlayersPage({ params }: PageProps) {
               <TableHead>Name</TableHead>
               <TableHead>Group</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              {isCommissioner ? <TableHead className="text-right">Actions</TableHead> : null}
             </TableRow>
           </TableHeader>
           <TableBody>
             {players.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-muted-foreground">
+                <TableCell colSpan={isCommissioner ? 4 : 3} className="text-muted-foreground">
                   {selectableCategories.length === 0 ? (
                     <>
                       Configure{' '}
@@ -153,50 +159,52 @@ export default async function PlayersPage({ params }: PageProps) {
                       .filter(Boolean)
                       .join(" · ") || "-"}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-                      <PlayerEditDialog
-                        tournamentSlug={slug}
-                        uploadsEnabled={uploadsEnabled}
-                        selectableCategories={selectableCategories}
-                        player={{
-                          id: player.id,
-                          name: player.name,
-                          rosterCategoryId: player.rosterCategoryId,
-                          gender: player.gender,
-                          photoUrl: player.photoUrl,
-                          notes: player.notes,
-                        }}
-                      />
-                      {player.linkedOwnerUserId ? (
-                        <RevokeFranchiseLoginButton
+                  {isCommissioner ? (
+                    <TableCell className="text-right">
+                      <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+                        <PlayerEditDialog
+                          tournamentSlug={slug}
+                          uploadsEnabled={uploadsEnabled}
+                          selectableCategories={selectableCategories}
+                          player={{
+                            id: player.id,
+                            name: player.name,
+                            rosterCategoryId: player.rosterCategoryId,
+                            gender: player.gender,
+                            photoUrl: player.photoUrl,
+                            notes: player.notes,
+                          }}
+                        />
+                        {player.linkedOwnerUserId ? (
+                          <RevokeFranchiseLoginButton
+                            tournamentSlug={slug}
+                            playerId={player.id}
+                            playerName={player.name}
+                            canInviteOwners={canInviteOwners}
+                          />
+                        ) : (
+                          <GrantFranchiseLoginDialog
+                            tournamentSlug={slug}
+                            playerId={player.id}
+                            playerName={player.name}
+                            invitingSupported={invitingSupported}
+                            canInviteOwners={canInviteOwners}
+                          />
+                        )}
+                        <DeletePlayerButton
                           tournamentSlug={slug}
                           playerId={player.id}
                           playerName={player.name}
-                          canInviteOwners={canInviteOwners}
+                          disabled={player.linkedOwnerUserId !== null}
+                          disabledReason={
+                            player.linkedOwnerUserId !== null
+                              ? "Revoke franchise login first (or remove them on Teams), then you can delete this roster row."
+                              : undefined
+                          }
                         />
-                      ) : (
-                        <GrantFranchiseLoginDialog
-                          tournamentSlug={slug}
-                          playerId={player.id}
-                          playerName={player.name}
-                          invitingSupported={invitingSupported}
-                          canInviteOwners={canInviteOwners}
-                        />
-                      )}
-                      <DeletePlayerButton
-                        tournamentSlug={slug}
-                        playerId={player.id}
-                        playerName={player.name}
-                        disabled={player.linkedOwnerUserId !== null}
-                        disabledReason={
-                          player.linkedOwnerUserId !== null
-                            ? "Revoke franchise login first (or remove them on Teams), then you can delete this roster row."
-                            : undefined
-                        }
-                      />
-                    </div>
-                  </TableCell>
+                      </div>
+                    </TableCell>
+                  ) : null}
                 </TableRow>
               ))
             )}

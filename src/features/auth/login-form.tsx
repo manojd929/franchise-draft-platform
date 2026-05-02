@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,8 @@ export function LoginForm({ nextPath }: LoginFormProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setMessage(null);
     if (!isSupabaseConfigured()) {
       setMessage(SIGN_IN_NOT_CONFIGURED);
@@ -95,11 +96,16 @@ export function LoginForm({ nextPath }: LoginFormProps) {
         </p>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <form
+        className="flex flex-col gap-3"
+        onSubmit={(event) => void handleSubmit(event)}
+        data-testid="login-form"
+      >
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
+            data-testid="login-email"
             type="email"
             autoComplete="email"
             value={email}
@@ -110,30 +116,30 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           <Label htmlFor="password">Password</Label>
           <Input
             id="password"
+            data-testid="login-password"
             type="password"
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
         </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
         {message ? (
           <p className="text-sm leading-snug text-destructive" role="alert">
             {message}
           </p>
         ) : null}
         <Button
-          type="button"
+          type="submit"
+          data-testid="login-submit"
           pending={isSubmitting}
           pendingLabel="Signing in…"
           className="min-h-12 w-full text-base"
-          onClick={() => void handleSubmit()}
         >
           Sign in
         </Button>
       </div>
+      </form>
 
       <p className="border-t border-border/50 pt-4 text-center text-sm leading-snug text-muted-foreground md:leading-relaxed">
         New franchise owner? Your commissioner creates your login from{" "}

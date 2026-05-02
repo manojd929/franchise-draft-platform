@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { AdminControlRoomClient } from "@/components/draft/admin-control-room-client";
 import { AdminRosterGroupsBrief } from "@/features/tournaments/admin-roster-groups-brief";
 import { getSessionUser } from "@/lib/auth/session";
-import { requireTournamentAccess } from "@/lib/data/tournament-access";
+import { getTournamentBySlug } from "@/lib/data/tournament-access";
 import { fetchDraftSnapshotBySlug } from "@/services/draft-service";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,13 @@ export default async function AdminControlRoomPage({ params }: PageProps) {
     redirect(`/login?next=/tournament/${slug}/admin`);
   }
 
-  await requireTournamentAccess(slug, user.id);
+  const tournament = await getTournamentBySlug(slug);
+  if (!tournament) {
+    notFound();
+  }
+  if (tournament.createdById !== user.id) {
+    redirect(`/tournament/${slug}`);
+  }
 
   const snapshot = await fetchDraftSnapshotBySlug(slug);
   if (!snapshot) {

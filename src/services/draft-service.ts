@@ -150,6 +150,23 @@ function mapSnapshot(t: NonNullable<Awaited<ReturnType<typeof loadDraftTournamen
       ? t.activeAuctionRosterCategory
       : null;
 
+  for (const player of t.players) {
+    if (player.linkedOwnerUserId === null) {
+      continue;
+    }
+    if (playerAssignments.has(player.id)) {
+      continue;
+    }
+    const ownerTeam = t.teams.find((team) => team.ownerUserId === player.linkedOwnerUserId);
+    if (!ownerTeam) {
+      continue;
+    }
+    playerAssignments.set(player.id, {
+      teamId: ownerTeam.id,
+      confirmed: true,
+    });
+  }
+
   return {
     tournamentId: t.id,
     slug: t.slug,

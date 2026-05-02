@@ -39,6 +39,7 @@ export function SignOutButton({
   return (
     <Button
       type="button"
+      data-testid="logout-button"
       variant={variant}
       className={cn(
         "min-h-11 w-full touch-manipulation sm:w-auto sm:min-w-[7rem]",

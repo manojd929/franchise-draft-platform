@@ -16,4 +16,6 @@ export const ROUTES = {
   tv: (slug: string) => `/tournament/${slug}/tv`,
   owner: (slug: string) => `/tournament/${slug}/owner`,
   categories: (slug: string) => `/tournament/${slug}/categories`,
+  fixtures: (slug: string) => `/tournament/${slug}/fixtures`,
+  run: (slug: string) => `/tournament/${slug}/run`,
 } as const;

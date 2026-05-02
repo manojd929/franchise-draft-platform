@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { Providers } from "@/components/providers";
@@ -44,10 +43,14 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var k=${JSON.stringify(APP_THEME_STORAGE_KEY)};var s=localStorage.getItem(k);var r=document.documentElement;r.classList.remove("light","dark");var d;if(s==="light")d=!1;else if(s==="dark")d=!0;else if(s==="system")d=window.matchMedia("(prefers-color-scheme: dark)").matches;else d=!0;if(d)r.classList.add("dark");}catch(e){document.documentElement.classList.remove("light","dark");document.documentElement.classList.add("dark");}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`(function(){try{var k=${JSON.stringify(APP_THEME_STORAGE_KEY)};var s=localStorage.getItem(k);var r=document.documentElement;r.classList.remove("light","dark");var d;if(s==="light")d=!1;else if(s==="dark")d=!0;else if(s==="system")d=window.matchMedia("(prefers-color-scheme: dark)").matches;else d=!0;if(d)r.classList.add("dark");}catch(e){document.documentElement.classList.remove("light","dark");document.documentElement.classList.add("dark");}})();`}
-        </Script>
         <Providers>{children}</Providers>
       </body>
     </html>

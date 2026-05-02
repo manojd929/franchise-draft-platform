@@ -2,8 +2,26 @@ import { AccountHeaderActions } from "@/components/auth/account-header-actions";
 import { CreateTournamentForm } from "@/features/tournaments/create-tournament-form";
 import { ROUTES } from "@/constants/app";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
-export default function NewTournamentPage() {
+import { UserRole } from "@/generated/prisma/enums";
+import { getSessionUser } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
+
+export default async function NewTournamentPage() {
+  const user = await getSessionUser();
+  if (!user) {
+    redirect("/login?next=/tournament/new");
+  }
+
+  const profile = await prisma.userProfile.findFirst({
+    where: { id: user.id, deletedAt: null },
+    select: { role: true },
+  });
+  if (!profile || profile.role !== UserRole.ADMIN) {
+    redirect(ROUTES.dashboard);
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-16">
       <div className="flex flex-wrap items-center justify-between gap-4">
