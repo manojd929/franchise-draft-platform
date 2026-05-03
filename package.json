@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
+    "db:reset-launch": "tsx prisma/reset-launch-database.ts",
     "tournament:clone": "tsx prisma/clone-tournament.ts",
     "seed:demo-tournament": "tsx prisma/seed-demo-tournament.ts",
     "test": "vitest run",

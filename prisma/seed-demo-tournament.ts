@@ -11,13 +11,13 @@ import {
   syncOwnerPlayersForTournament,
 } from "@/services/tournament-service";
 
-const DEFAULT_TOURNAMENT_NAME = "Sunday Badminton League - QA";
+const DEFAULT_TOURNAMENT_NAME = "Hanuman cup";
 const MAX_AUTH_LIST_PAGES = 50;
 
 const QA_ADMIN = {
-  email: "qa.admin@example.com",
-  password: "QaAdmin@2026",
-  displayName: "QA Admin",
+  email: "admin@draftforge.com",
+  password: "admin@draftforge",
+  displayName: "DraftForge Admin",
 } as const;
 
 const QA_OWNERS = [
@@ -297,7 +297,7 @@ async function main(): Promise<void> {
   console.info(`Hub: ${baseUrl}/tournament/${tournament.slug}`);
   console.info(`Admin: ${baseUrl}/tournament/${tournament.slug}/admin`);
   console.info(`Inserted QA players this run: ${String(insertedCount)}`);
-  console.info("Admin login: qa.admin@example.com / QaAdmin@2026");
+  console.info(`Admin login: ${QA_ADMIN.email} / ${QA_ADMIN.password}`);
   for (const owner of ownerAccounts) {
     console.info(`${owner.teamName}: ${owner.email} / ${owner.password}`);
   }
