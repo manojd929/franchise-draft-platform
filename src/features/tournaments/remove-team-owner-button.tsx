@@ -87,7 +87,7 @@ export function RemoveTeamOwnerButton({
             <AlertDialogDescription className="text-left">
               <span className="font-medium text-foreground">{team.name}</span> will have no owner login until
               you assign someone again. Sync clears auto-created roster stubs when needed. If someone only had
-              login access through their roster stub here—and no other franchises rely on them—their sign-in
+              login access through their roster stub here (and no other franchises rely on them), their sign-in
               credentials are cleared automatically when it is safe to do so.
             </AlertDialogDescription>
           </AlertDialogHeader>

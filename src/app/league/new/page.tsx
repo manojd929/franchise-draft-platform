@@ -31,7 +31,7 @@ export default async function NewLeaguePage() {
       </div>
       <h1 className="mt-8 text-4xl font-semibold tracking-tight">Create a league</h1>
       <p className="mt-3 max-w-2xl text-muted-foreground">
-        A league is a recurring, branded competition — a home for every season
+        A league is a recurring, branded competition: a home for every season
         and tournament you run, with its own shareable public page.
       </p>
       <div className="mt-12">

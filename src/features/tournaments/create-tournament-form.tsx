@@ -28,7 +28,7 @@ const ALLOCATION_METHODS = [
   {
     value: "LIVE_AUCTION",
     label: "Live auction",
-    hint: "IPL-style bidding with team purses — owners bid from their phones.",
+    hint: "IPL-style bidding with team purses; owners bid from their phones.",
   },
 ] as const;
 

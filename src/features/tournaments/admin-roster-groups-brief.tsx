@@ -49,7 +49,7 @@ export async function AdminRosterGroupsBrief({
           </h3>
           <p className="max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
             Athlete badges, commissioner filters, squad limits, and the auction lobby all pull from these
-            groups. Edit names, palette, ordering, archives—no redeploy needed.
+            groups. Edit names, palette, ordering, and archives, no redeploy needed.
           </p>
           {archivedCount > 0 ? (
             <p className="text-xs text-muted-foreground">
@@ -78,7 +78,7 @@ export async function AdminRosterGroupsBrief({
       <div className="mt-4 flex flex-wrap gap-2 border-t border-border/50 pt-4">
         {activeCategories.length === 0 ? (
           <p className="text-xs text-muted-foreground sm:text-sm">
-            No active groups detected—open Manage roster groups to scaffold your buckets.
+            No active groups detected. Open Manage roster groups to scaffold your buckets.
           </p>
         ) : (
           activeCategories.map((c) => (

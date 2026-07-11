@@ -50,7 +50,9 @@ export function InviteOwnerPanel({
       }
       form.reset();
       setDoneMessage(
-        `Created login for ${result.email ?? "that account"}. Prefer adding roster rows on Players first next time; you can still assign a franchise when you close this panel.`,
+        result.linkedExisting
+          ? `${result.email ?? "That account"} already had a HuliCourt login, so we linked it here instead of creating a new one. The password you entered was not used; they sign in with their existing password. Assign a franchise to them from Teams.`
+          : `Created login for ${result.email ?? "that account"}. Prefer adding roster rows on Players first next time; you can still assign a franchise when you close this panel.`,
       );
       router.refresh();
       onCreated?.();

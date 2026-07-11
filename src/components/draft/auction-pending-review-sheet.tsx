@@ -240,7 +240,7 @@ export function AuctionPendingReviewSheet({
               ) : (
                 <div className="mt-auto space-y-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4">
                   <p className="text-xs font-medium text-primary">
-                    Manual assign skips the nominee queue — use for clock corrections while rules
+                    Manual assign skips the nominee queue; use for clock corrections while rules
                     are on (subject to squad caps).
                   </p>
                   <Select

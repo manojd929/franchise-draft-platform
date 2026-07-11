@@ -27,7 +27,7 @@ export default function SettingsPage() {
       </div>
 
       <p className="mt-10 border-t border-border/40 pt-8 text-xs leading-relaxed text-muted-foreground">
-        Your backdrop choice saves on this browser. Open the commissioner dashboard anytime — the updated
+        Your backdrop choice saves on this browser. Open the commissioner dashboard anytime; the updated
         floor palette applies immediately.
       </p>
     </div>

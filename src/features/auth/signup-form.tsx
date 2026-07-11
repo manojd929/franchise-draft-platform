@@ -50,7 +50,7 @@ export function SignupForm() {
       });
       if (error || !data.session?.access_token || !data.session.refresh_token) {
         setMessage(
-          "Your league was created — sign in with your new credentials.",
+          "Your league was created. Sign in with your new credentials.",
         );
         return;
       }

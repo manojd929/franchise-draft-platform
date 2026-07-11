@@ -35,7 +35,7 @@ export default async function SignupPage() {
         <main className="flex flex-1 flex-col justify-center py-7 sm:py-8 md:py-10">
           <Image
             src="/brand/hulicourt-lockup-full.webp"
-            alt={`${APP_NAME} — Draft. Auction. Play. Win.`}
+            alt={`${APP_NAME}: Draft. Auction. Play. Win.`}
             width={291}
             height={340}
             className="mx-auto mb-6 h-24 w-auto rounded-xl sm:h-28"

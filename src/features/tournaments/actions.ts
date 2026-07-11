@@ -62,7 +62,7 @@ import {
 } from "@/services/roster-category-service";
 
 export type TournamentActionResult =
-  | { ok: true; slug?: string; email?: string }
+  | { ok: true; slug?: string; email?: string; linkedExisting?: boolean }
   | { ok: false; error: string };
 
 function handle(err: unknown): TournamentActionResult {
@@ -321,12 +321,12 @@ export async function createLeagueOwnerAction(
       return { ok: false, error: "Use a valid email and password (at least 8 characters)." };
     }
     const user = await requireSessionUser();
-    const { email } = await createLeagueOwnerAccount(user.id, parsed.data);
+    const { email, linkedExisting } = await createLeagueOwnerAccount(user.id, parsed.data);
     const slug = parsed.data.tournamentSlug;
     revalidatePath(`/tournament/${slug}`, "layout");
     revalidatePath(`/tournament/${slug}/teams`);
     revalidatePath(`/tournament/${slug}/players`);
-    return { ok: true, email };
+    return { ok: true, email, linkedExisting };
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
       return { ok: false, error: "Unauthorized" };
@@ -347,12 +347,15 @@ export async function createLeagueOwnerForPlayerAction(
       };
     }
     const user = await requireSessionUser();
-    const { email } = await createLeagueOwnerForPlayerAccount(user.id, parsed.data);
+    const { email, linkedExisting } = await createLeagueOwnerForPlayerAccount(
+      user.id,
+      parsed.data,
+    );
     const slug = parsed.data.tournamentSlug;
     revalidatePath(`/tournament/${slug}`, "layout");
     revalidatePath(`/tournament/${slug}/teams`);
     revalidatePath(`/tournament/${slug}/players`);
-    return { ok: true, email };
+    return { ok: true, email, linkedExisting };
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
       return { ok: false, error: "Unauthorized" };

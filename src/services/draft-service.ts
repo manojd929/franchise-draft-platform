@@ -594,7 +594,7 @@ export async function startDraft(params: {
     assertPhase(tournament.draftPhase, [DraftPhase.READY, DraftPhase.SETUP]);
     if (tournament.allocationMethod === AllocationMethod.RANDOM_ASSIGNMENT) {
       throw new DraftServiceError(
-        "This tournament uses random assignment — run it from the admin desk instead of starting a live draft.",
+        "This tournament uses random assignment. Run it from the admin desk instead of starting a live draft.",
       );
     }
     const isAuction =
@@ -727,7 +727,7 @@ export async function setAuctionSpotlightCategory(params: {
         action: DraftLogAction.AUCTION_FOCUS_CATEGORY,
         message:
           nextId === null
-            ? "Spotlight cleared — owners can nominate from any roster group."
+            ? "Spotlight cleared. Owners can nominate from any roster group."
             : `Spotlight locked to roster group "${categoryLabel ?? "Unknown"}". Owners only see nominees in this group.`,
         actorUserId: params.actorUserId,
         payload:

@@ -36,7 +36,7 @@ export function DashboardFloorAppearanceSettingsCard() {
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">Theme presets</p>
             <p className="text-sm leading-snug text-muted-foreground">
-              Tap a preset — the dashboard and preview update immediately on this browser.
+              Tap a preset; the dashboard and preview update immediately on this browser.
             </p>
           </div>
           <DashboardFloorThemeSwatches
@@ -52,7 +52,7 @@ export function DashboardFloorAppearanceSettingsCard() {
           <div className="min-w-0 max-w-xl space-y-1">
             <p className="text-sm font-medium text-foreground">List picker</p>
             <p className="text-sm leading-snug text-muted-foreground">
-              Same themes as above — alternate control for keyboard navigation or tighter layouts.
+              Same themes as above; alternate control for keyboard navigation or tighter layouts.
             </p>
           </div>
           <DashboardFloorThemePicker triggerClassName="sm:shrink-0" />

@@ -212,7 +212,7 @@ export function AuctionDeskClient({ slug, initialSnapshot }: AuctionDeskClientPr
                 <span className="text-sm text-muted-foreground">
                   {currentLot.currentBid !== null && leadingTeam
                     ? `leading bid by ${leadingTeam.name}`
-                    : "no bids yet — base price"}
+                    : "no bids yet, base price"}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -220,7 +220,7 @@ export function AuctionDeskClient({ slug, initialSnapshot }: AuctionDeskClientPr
                   disabled={busy || currentLot.currentBid === null}
                   title={
                     currentLot.currentBid === null
-                      ? "No bids yet — a franchise must bid before you can hammer the sale. Use Unsold to send this player back to the pool."
+                      ? "No bids yet. A franchise must bid before you can hammer the sale. Use Unsold to send this player back to the pool."
                       : undefined
                   }
                   className="bg-brand text-brand-foreground hover:bg-brand/90 focus-visible:ring-brand/50 disabled:opacity-50 disabled:hover:bg-brand disabled:cursor-not-allowed"
@@ -251,7 +251,7 @@ export function AuctionDeskClient({ slug, initialSnapshot }: AuctionDeskClientPr
                           lotId: currentLot.lotId,
                           outcome: "UNSOLD",
                         }),
-                      "Marked unsold — back in the pool.",
+                      "Marked unsold, back in the pool.",
                     )
                   }
                 >

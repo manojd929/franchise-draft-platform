@@ -19,22 +19,22 @@ export const dashboardFloorThemeOptions: readonly {
   {
     id: "broadcast",
     label: "Broadcast",
-    hint: "Control-room graphite, soft violet lift — neutral multi-event floor.",
+    hint: "Control-room graphite, soft violet lift, neutral multi-event floor.",
   },
   {
     id: "circuit",
     label: "Circuit",
-    hint: "Teal telemetry and glass depth — ops / replay suite energy.",
+    hint: "Teal telemetry and glass depth, ops / replay suite energy.",
   },
   {
     id: "pitch",
     label: "Pitch",
-    hint: "Moss turf, damped amber — stadium grass under floodlights.",
+    hint: "Moss turf, damped amber, stadium grass under floodlights.",
   },
   {
     id: "velocity",
     label: "Velocity",
-    hint: "Cobalt readouts and cobalt haze — esports HUD, broadcast safe.",
+    hint: "Cobalt readouts and cobalt haze, esports HUD, broadcast safe.",
   },
 ] as const;
 

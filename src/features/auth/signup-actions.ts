@@ -32,7 +32,7 @@ export async function signUpAction(input: unknown): Promise<SignUpResult> {
     return {
       ok: false,
       error:
-        "Check your details — your name needs 2+ characters and a password of 8+.",
+        "Check your details: your name needs 2+ characters and a password of 8+.",
     };
   }
 
@@ -63,7 +63,7 @@ export async function signUpAction(input: unknown): Promise<SignUpResult> {
     return {
       ok: false,
       error: /already|exists|registered/iu.test(message)
-        ? "An account with this email already exists — sign in instead."
+        ? "An account with this email already exists. Sign in instead."
         : "Could not create your account. Try again.",
     };
   }

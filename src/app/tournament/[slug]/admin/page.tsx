@@ -39,7 +39,7 @@ export default async function AdminControlRoomPage({ params }: PageProps) {
       ? {
           title: "Run the live auction",
           blurb:
-            "Open a lot, let owners bid from their phones, then bang the hammer — sold squads flow straight into rosters and fixtures.",
+            "Open a lot, let owners bid from their phones, then bang the hammer. Sold squads flow straight into rosters and fixtures.",
         }
       : snapshot.allocationMethod === "RANDOM_ASSIGNMENT"
         ? {
@@ -50,7 +50,7 @@ export default async function AdminControlRoomPage({ params }: PageProps) {
         : {
             title: "Run the draft",
             blurb:
-              "Shuffle franchise order once, then go live. When an owner submits a nominee, you will confirm it or decline and keep drafting — HuliCourt advances the picks for you.",
+              "Shuffle franchise order once, then go live. When an owner submits a nominee, you will confirm it or decline and keep drafting. HuliCourt advances the picks for you.",
           };
 
   return (

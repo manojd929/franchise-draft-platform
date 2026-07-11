@@ -82,7 +82,7 @@ export function RandomAssignmentPanel({
         <CardTitle>Random assignment</CardTitle>
         <CardDescription>
           {completed
-            ? "Teams have been assigned — head to fixtures."
+            ? "Teams have been assigned. Head to fixtures."
             : `One tap assigns ${eligibleCount} available players evenly across ${snapshot.teams.length} teams, respecting roster-group caps. Owner-linked players keep their teams.`}
         </CardDescription>
       </CardHeader>

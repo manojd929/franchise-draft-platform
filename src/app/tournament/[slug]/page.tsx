@@ -119,7 +119,7 @@ export default async function TournamentHubPage({ params }: PageProps) {
                 <strong className="font-semibold text-foreground">Run the auction</strong> flow, and
                 can check confirmed picks in{" "}
                 <strong className="font-semibold text-foreground">My Team</strong> when they are
-                signed in — the commissioner works from Manage auction instead.
+                signed in. The commissioner works from Manage auction instead.
               </>
             )}
           </p>

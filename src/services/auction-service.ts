@@ -235,12 +235,12 @@ export async function placeAuctionBid(params: {
     });
     if (rejection?.reason === "TOO_LOW") {
       throw new DraftServiceError(
-        `Bid too low — the minimum acceptable bid is ${rejection.minAcceptable}.`,
+        `Bid too low. The minimum acceptable bid is ${rejection.minAcceptable}.`,
       );
     }
     if (rejection?.reason === "INSUFFICIENT_PURSE") {
       throw new DraftServiceError(
-        `Insufficient purse — you have ${rejection.purseRemaining} left.`,
+        `Insufficient purse. You have ${rejection.purseRemaining} left.`,
       );
     }
 
@@ -281,7 +281,7 @@ export async function placeAuctionBid(params: {
     });
     if (updated.count === 0) {
       throw new DraftServiceError(
-        "Another bid landed first — check the new price and bid again.",
+        "Another bid landed first. Check the new price and bid again.",
       );
     }
 
@@ -343,7 +343,7 @@ export async function closeAuctionLot(params: {
     if (params.outcome === "SOLD") {
       if (lot.currentBid === null || lot.currentBidTeamId === null) {
         throw new DraftServiceError(
-          "No bids on this lot — mark it unsold instead.",
+          "No bids on this lot. Mark it unsold instead.",
         );
       }
       // Defense-in-depth: re-check the winning team can still afford the bid at
@@ -425,7 +425,7 @@ export async function closeAuctionLot(params: {
           data: {
             tournamentId: tournament.id,
             action: DraftLogAction.DRAFT_ENDED,
-            message: "All squads are full — auction complete.",
+            message: "All squads are full. Auction complete.",
             actorUserId: params.actorUserId,
           },
         });
@@ -452,7 +452,7 @@ export async function closeAuctionLot(params: {
             : DraftLogAction.LOT_CANCELLED,
         message:
           params.outcome === "UNSOLD"
-            ? `${lot.player.name} goes unsold — back in the pool for a later round.`
+            ? `${lot.player.name} goes unsold, back in the pool for a later round.`
             : `Lot for ${lot.player.name} was cancelled.`,
         payload: { lotId: lot.id, playerId: lot.playerId } as Prisma.InputJsonValue,
         actorUserId: params.actorUserId,

@@ -37,7 +37,7 @@ export default async function DraftFloorPage({ params }: PageProps) {
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             When a player goes under the hammer, tap{" "}
             <span className="font-medium text-foreground">Bid</span> to raise.
-            Watch your purse — the organizer bangs the hammer.
+            Watch your purse; the organizer bangs the hammer.
           </p>
         </header>
         <AuctionRoomClient

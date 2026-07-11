@@ -218,7 +218,7 @@ export function AdminControlRoomClient({
       return "The auction already started. Pause or use Advanced if you need operational changes.";
     }
     if (!hasDraftSlots) {
-      return "Shuffle pick order first — that creates the round-by-round draft slots.";
+      return "Shuffle pick order first; that creates the round-by-round draft slots.";
     }
     return "";
   }, [hasDraftSlots, liveSnapshot.draftPhase, setupOrReady]);
@@ -412,7 +412,7 @@ export function AdminControlRoomClient({
                       (liveSnapshot.draftPhase === DraftPhase.LIVE ||
                         liveSnapshot.draftPhase === DraftPhase.FROZEN ||
                         liveSnapshot.draftPhase === DraftPhase.LOCKED)
-                    ? "A nominee is waiting — confirm or decline in the review panel."
+                    ? "A nominee is waiting; confirm or decline in the review panel."
                     : liveSnapshot.draftPhase === DraftPhase.LIVE
                       ? "Owners choose on their phones. Finalize nominees when they appear."
                       : paused
@@ -655,7 +655,7 @@ export function AdminControlRoomClient({
                 <p className="min-w-0 flex-1 text-sm leading-relaxed text-muted-foreground md:border-l md:border-border/60 md:pl-4 lg:pl-5">
                   <strong className="font-medium text-foreground">Shuffle pick order</strong> and{" "}
                   <strong className="font-medium text-foreground">Start auction</strong> apply only before
-                  the room goes live — the server freezes pick order mid-auction for stability.
+                  the room goes live; the server freezes pick order mid-auction for stability.
                 </p>
                 <p className="min-w-0 flex-1 text-sm leading-relaxed text-muted-foreground md:border-l md:border-border/60 md:pl-4 lg:pl-5">
                   Use the banner for <strong className="font-medium text-foreground">Pause</strong> /{" "}

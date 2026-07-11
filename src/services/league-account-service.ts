@@ -20,7 +20,7 @@ import type {
 export async function createLeagueOwnerAccount(
   commissionerUserId: string,
   input: CreateLeagueOwnerInput,
-): Promise<{ userId: string; email: string }> {
+): Promise<{ userId: string; email: string; linkedExisting: boolean }> {
   const tournamentId = await assertTournamentOwnership(
     input.tournamentSlug,
     commissionerUserId,
@@ -42,6 +42,45 @@ export async function createLeagueOwnerAccount(
     );
   }
 
+  const normalizedEmail = input.email.trim().toLowerCase();
+
+  // A real person plausibly owns franchises across more than one commissioner's
+  // tournament (different leagues, same player). Rather than failing outright
+  // when the email already has an account elsewhere, link that existing login
+  // to this tournament instead of trying (and failing) to create a duplicate.
+  // We never touch the password of an existing account here.
+  const existingProfile = await prisma.userProfile.findFirst({
+    where: {
+      email: { equals: normalizedEmail, mode: "insensitive" },
+      deletedAt: null,
+    },
+    select: { id: true, email: true, role: true },
+  });
+
+  if (existingProfile) {
+    if (existingProfile.id === commissionerUserId) {
+      throw new TournamentServiceError(
+        "That is your own commissioner login. Franchise owners need a separate account.",
+      );
+    }
+    if (existingProfile.role === UserRole.ADMIN) {
+      throw new TournamentServiceError(
+        "That email belongs to a commissioner/admin account and cannot be granted a franchise-owner login.",
+      );
+    }
+    if (existingProfile.role !== UserRole.OWNER) {
+      await prisma.userProfile.update({
+        where: { id: existingProfile.id },
+        data: { role: UserRole.OWNER },
+      });
+    }
+    return {
+      userId: existingProfile.id,
+      email: existingProfile.email,
+      linkedExisting: true,
+    };
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -59,7 +98,7 @@ export async function createLeagueOwnerAccount(
   const displayTrimmed = input.displayName?.trim() ?? "";
 
   const { data, error } = await adminClient.auth.admin.createUser({
-    email: input.email.trim(),
+    email: normalizedEmail,
     password: input.password,
     email_confirm: true,
     user_metadata:
@@ -79,7 +118,7 @@ export async function createLeagueOwnerAccount(
     throw new TournamentServiceError("Could not create that login.");
   }
 
-  const resolvedEmail = authUser.email ?? input.email.trim();
+  const resolvedEmail = authUser.email ?? normalizedEmail;
 
   await prisma.userProfile.upsert({
     where: { id: authUser.id },
@@ -96,13 +135,13 @@ export async function createLeagueOwnerAccount(
     },
   });
 
-  return { userId: authUser.id, email: resolvedEmail };
+  return { userId: authUser.id, email: resolvedEmail, linkedExisting: false };
 }
 
 export async function createLeagueOwnerForPlayerAccount(
   commissionerUserId: string,
   input: CreateLeagueOwnerForPlayerInput,
-): Promise<{ email: string }> {
+): Promise<{ email: string; linkedExisting: boolean }> {
   const tournamentId = await assertTournamentOwnership(
     input.tournamentSlug,
     commissionerUserId,
@@ -131,19 +170,38 @@ export async function createLeagueOwnerForPlayerAccount(
   const displayForInvite =
     displayTrimmed !== "" ? displayTrimmed : player.name.trim();
 
-  const { userId, email } = await createLeagueOwnerAccount(commissionerUserId, {
-    tournamentSlug: input.tournamentSlug,
-    email: input.email,
-    password: input.password,
-    displayName: displayForInvite,
-  });
+  const { userId, email, linkedExisting } = await createLeagueOwnerAccount(
+    commissionerUserId,
+    {
+      tournamentSlug: input.tournamentSlug,
+      email: input.email,
+      password: input.password,
+      displayName: displayForInvite,
+    },
+  );
+
+  if (linkedExisting) {
+    const alreadyLinkedInTournament = await prisma.player.findFirst({
+      where: {
+        tournamentId,
+        deletedAt: null,
+        linkedOwnerUserId: userId,
+      },
+      select: { id: true },
+    });
+    if (alreadyLinkedInTournament) {
+      throw new TournamentServiceError(
+        "That account already has a franchise login in this tournament. Assign it from Teams instead of granting a new one.",
+      );
+    }
+  }
 
   await prisma.player.update({
     where: { id: player.id },
     data: { linkedOwnerUserId: userId },
   });
 
-  return { email };
+  return { email, linkedExisting };
 }
 
 export function isLeagueOwnerInviteConfigured(): boolean {

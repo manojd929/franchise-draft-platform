@@ -118,20 +118,20 @@ export const tournamentHubCards: TournamentHubCard[] = [
     href: ROUTES.admin,
     title: "Run the auction",
     description:
-      "Start, shuffle order, spotlight rounds, pause, confirm — everything you run from one desk.",
+      "Start, shuffle order, spotlight rounds, pause, confirm: everything you run from one desk.",
     primary: true,
   },
   {
     href: ROUTES.tv,
     title: "Live roster board",
     description:
-      "Hall & projector view: franchises, drafted players by group, spotlight, clock, and picks — refreshes automatically.",
+      "Hall & projector view: franchises, drafted players by group, spotlight, clock, and picks. Refreshes automatically.",
     primary: true,
   },
   {
     href: ROUTES.categories,
     title: "Roster groups",
-    description: "Labels, tint colors, display order — what shows on every roster surface.",
+    description: "Labels, tint colors, display order: what shows on every roster surface.",
   },
     {
       href: ROUTES.teams,
@@ -146,7 +146,7 @@ export const tournamentHubCards: TournamentHubCard[] = [
   {
     href: ROUTES.rules,
     title: "Rules",
-    description: "Caps per roster group — what each franchise can roster live.",
+    description: "Caps per roster group: what each franchise can roster live.",
   },
   {
     href: ROUTES.owner,
@@ -211,7 +211,7 @@ export function tournamentHubCardsForViewer(options: {
       href: ROUTES.tv,
       title: "Live roster board",
       description:
-        "Hall & projector view: franchises, drafted players by group, spotlight, clock, and picks — refreshes automatically.",
+        "Hall & projector view: franchises, drafted players by group, spotlight, clock, and picks. Refreshes automatically.",
       primary: true,
     },
     ...tournamentHubCards.filter((card) => card.participantOnly),

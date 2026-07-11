@@ -91,8 +91,8 @@ export default async function DashboardPage() {
         <div className="max-w-xl">
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl" data-testid="dashboard-title">Your tournaments</h1>
           <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-            Set up teams and players, pick how squads are formed — draft, random, or a
-            live auction — then run it on the shared board.
+            Set up teams and players, pick how squads are formed (draft, random, or a
+            live auction), then run it on the shared board.
           </p>
         </div>
         {userRole === UserRole.ADMIN ? (

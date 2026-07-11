@@ -67,7 +67,9 @@ export function GrantFranchiseLoginDialog({
       }
       form.reset();
       setDoneMessage(
-        `Created login for ${result.email ?? "that account"}. Share email and password with them, then assign their franchise on Teams.`,
+        result.linkedExisting
+          ? `${result.email ?? "That account"} already had a HuliCourt login, so we linked it here instead of creating a new one. The password you entered was not used; they sign in with their existing password. Now assign their franchise on Teams.`
+          : `Created login for ${result.email ?? "that account"}. Share email and password with them, then assign their franchise on Teams.`,
       );
       router.refresh();
     } finally {

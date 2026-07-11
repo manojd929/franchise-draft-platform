@@ -114,7 +114,7 @@ export default async function LeaguePage({ params }: PageProps) {
                 <CardDescription>
                   {canManage
                     ? "Add your first tournament to this league to kick off the season."
-                    : "This league hasn’t published a tournament yet — check back soon."}
+                    : "This league hasn’t published a tournament yet. Check back soon."}
                 </CardDescription>
               </CardHeader>
             </Card>

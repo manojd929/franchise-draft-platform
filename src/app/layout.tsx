@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     template: `%s · ${APP_NAME}`,
   },
   description:
-    "Run drafts, random team assignment, or a live IPL-style auction for your racquet-sports club — badminton, pickleball, tennis, table tennis — then run the whole tournament on a shared live board.",
+    "Run drafts, random team assignment, or a live IPL-style auction for your racquet-sports club (badminton, pickleball, tennis, table tennis), then run the whole tournament on a shared live board.",
 };
 
 export const viewport: Viewport = {

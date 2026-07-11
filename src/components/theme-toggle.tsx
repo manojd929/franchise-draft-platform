@@ -28,8 +28,8 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
 
   const appearanceLabel =
     resolved === "dark"
-      ? "Appearance: dark mode is on — change theme"
-      : "Appearance: light mode is on — change theme";
+      ? "Appearance: dark mode is on, change theme"
+      : "Appearance: light mode is on, change theme";
 
   if (!clientReady) {
     /** Avoid Base UI dropdown trigger SSR/client subtree mismatches; matches default provider theme (dark). */

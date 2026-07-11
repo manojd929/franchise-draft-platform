@@ -357,7 +357,7 @@ export function DraftRoomClient({
                   </p>
                 ) : (
                   <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                    Your franchise is on the clock — tap a player below.
+                    Your franchise is on the clock. Tap a player below.
                   </p>
                 )
               ) : (
@@ -710,7 +710,7 @@ export function DraftRoomClient({
             colorHex={effectiveSnapshot.auctionSpotlightRosterCategoryColorHex}
             className="align-middle text-xs font-normal"
           />{" "}
-          — franchises only see nominees in this group; you retain the full roster for desk review.
+          : franchises only see nominees in this group; you retain the full roster for desk review.
         </div>
       ) : null}
 

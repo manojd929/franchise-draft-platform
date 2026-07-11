@@ -45,9 +45,9 @@ export default function LandingPage() {
           Run your club&apos;s draft or auction like the big leagues.
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:mt-8 sm:text-lg md:text-xl dark:text-white/75">
-          Pick how squads are formed — snake draft, instant random, or a live IPL-style
+          Pick how squads are formed: snake draft, instant random, or a live IPL-style
           auction with team purses. Owners join from their phones; the room watches on the
-          big screen. Built for racquet sports — badminton, pickleball, tennis, table tennis.
+          big screen. Built for racquet sports: badminton, pickleball, tennis, table tennis.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:mt-12 sm:flex-row sm:flex-wrap sm:gap-4">
           <Link
@@ -71,7 +71,7 @@ export default function LandingPage() {
           {[
             {
               title: "Three ways to pick",
-              body: "Snake draft, one-tap random assignment, or a live auction with team purses and phone bidding — your call per tournament.",
+              body: "Snake draft, one-tap random assignment, or a live auction with team purses and phone bidding. Your call per tournament.",
             },
             {
               title: "Built for the room",
@@ -79,7 +79,7 @@ export default function LandingPage() {
             },
             {
               title: "Then run the tournament",
-              body: "Auctioned squads flow straight into fixtures, scoring, and standings — all the way to the final.",
+              body: "Auctioned squads flow straight into fixtures, scoring, and standings, all the way to the final.",
             },
           ].map((item) => (
             <div

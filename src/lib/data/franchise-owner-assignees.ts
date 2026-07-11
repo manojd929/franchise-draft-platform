@@ -8,34 +8,20 @@ import { prisma } from "@/lib/prisma";
  * - Excludes the tournament commissioner entirely (Admin runs separately; use another login).
  * - Excludes league admin accounts (`UserRole.ADMIN`); they run the auction, not franchise bidding.
  * - Excludes random VIEWER accounts that are not stakeholders in this tournament.
- * - Excludes anyone already owning a team in another tournament,
- *   unless they're already an owner in THIS tournament (so edits/reassignment keep labels).
  * - Re-attaches profiles for current-team owners not covered above (odd legacy rows).
+ *
+ * Deliberately does NOT exclude people who already own a team in a different
+ * tournament: a real person can plausibly be a franchise owner across several
+ * different commissioners' tournaments (same login, different leagues), and
+ * `deleteAuthUserIfNoOwnerReferences` already checks ownership globally before
+ * ever deleting an account, so nothing else in the app assumes one team per
+ * login platform-wide.
  */
 export async function buildFranchiseOwnerAssigneeList(params: {
   tournamentId: string;
   commissionerUserId: string;
   existingTeamOwnerIds: string[];
 }): Promise<AssignablePerson[]> {
-  const busyElsewhereRows = await prisma.team.findMany({
-    where: {
-      tournamentId: { not: params.tournamentId },
-      deletedAt: null,
-      ownerUserId: { not: null },
-    },
-    select: { ownerUserId: true },
-  });
-
-  const busyElsewhere = new Set(
-    busyElsewhereRows
-      .map((row) => row.ownerUserId)
-      .filter((id): id is string => Boolean(id)),
-  );
-
-  const currentOwners = new Set(
-    params.existingTeamOwnerIds.filter((id) => id.trim() !== ""),
-  );
-
   const linkedStakeholders = await prisma.player.findMany({
     where: {
       tournamentId: params.tournamentId,
@@ -71,14 +57,7 @@ export async function buildFranchiseOwnerAssigneeList(params: {
     select: { id: true, email: true, displayName: true },
   });
 
-  const assignable = candidates.filter((person) => {
-    if (busyElsewhere.has(person.id) && !currentOwners.has(person.id)) {
-      return false;
-    }
-    return true;
-  });
-
-  const assignableIds = new Set(assignable.map((person) => person.id));
+  const assignableIds = new Set(candidates.map((person) => person.id));
 
   const orphanIds = params.existingTeamOwnerIds.filter(
     (id) =>
@@ -100,7 +79,7 @@ export async function buildFranchiseOwnerAssigneeList(params: {
       : [];
 
   const merged = new Map<string, AssignablePerson>();
-  for (const person of assignable) {
+  for (const person of candidates) {
     merged.set(person.id, person);
   }
   for (const person of orphans) {

@@ -98,7 +98,7 @@ export function AuctionRoomClient({
         <CardHeader>
           <CardTitle>Spectating</CardTitle>
           <CardDescription>
-            You are not a franchise owner in this tournament — enjoy the show on
+            You are not a franchise owner in this tournament. Enjoy the show on
             the live board.
           </CardDescription>
         </CardHeader>
@@ -153,13 +153,13 @@ export function AuctionRoomClient({
                   ? iAmLeading
                     ? "you are leading!"
                     : `leading: ${leadingTeam?.name ?? "another team"}`
-                  : "opening price — no bids yet"}
+                  : "opening price, no bids yet"}
               </span>
             </div>
 
             {iAmLeading ? (
               <Badge className="border-brand/40 bg-brand/15 text-sm text-brand-accent" variant="secondary">
-                Highest bidder — hold tight
+                Highest bidder, hold tight
               </Badge>
             ) : (
               <div className="space-y-3">
@@ -224,7 +224,7 @@ export function AuctionRoomClient({
             ))}
             {myRoster.length === 0 && (
               <li className="py-4 text-center text-sm text-muted-foreground">
-                No players yet — win some lots!
+                No players yet, win some lots!
               </li>
             )}
           </ul>
