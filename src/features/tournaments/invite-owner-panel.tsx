@@ -49,10 +49,11 @@ export function InviteOwnerPanel({
         return;
       }
       form.reset();
+      const emailForMessage = result.email ?? "that account";
       setDoneMessage(
         result.linkedExisting
-          ? `${result.email ?? "That account"} already had a HuliCourt login, so we linked it here instead of creating a new one. The password you entered was not used; they sign in with their existing password. Assign a franchise to them from Teams.`
-          : `Created login for ${result.email ?? "that account"}. Prefer adding roster rows on Players first next time; you can still assign a franchise when you close this panel.`,
+          ? `Linked existing account · ${emailForMessage}. Their existing password still works — the one you entered was ignored. Assign a franchise to them from Teams.`
+          : `Created login · ${emailForMessage}. Prefer adding roster rows on Players first next time; you can still assign a franchise when you close this panel.`,
       );
       router.refresh();
       onCreated?.();

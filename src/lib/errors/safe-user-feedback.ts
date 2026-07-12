@@ -45,15 +45,31 @@ export function networkOrUnknownSignInUserMessage(internalMessage?: unknown): st
   return GENERIC_SIGN_IN;
 }
 
+/**
+ * Substring markers used to detect "this email is already registered"
+ * errors coming back from Supabase / GoTrue, across versions.
+ *
+ * Exported so the owner-provisioning flow and this translator agree on
+ * exactly one canonical list — drift here would leave the race resolver
+ * missing conflicts and falling through to a generic error message.
+ */
+export const AUTH_EMAIL_CONFLICT_MARKERS: readonly string[] = Object.freeze([
+  "already registered",
+  "already exists",
+  "user already registered",
+  "duplicate",
+  "unique constraint",
+]);
+
+export function isAuthEmailConflictMessage(rawMessage: string | undefined | null): boolean {
+  const normalized = (rawMessage ?? "").trim().toLowerCase();
+  if (normalized === "") return false;
+  return AUTH_EMAIL_CONFLICT_MARKERS.some((marker) => normalized.includes(marker));
+}
+
 export function leagueOwnerAdminProvisioningUserMessage(adminApiMessage?: string | null): string {
   const m = (adminApiMessage ?? "").trim().toLowerCase();
-  if (
-    m.includes("already registered") ||
-    m.includes("already exists") ||
-    m.includes("user already registered") ||
-    m.includes("duplicate") ||
-    m.includes("unique constraint")
-  ) {
+  if (isAuthEmailConflictMessage(m)) {
     return "That email already has an account.";
   }
   if (m.includes("password") || m.includes("weak") || m.includes("characters")) {

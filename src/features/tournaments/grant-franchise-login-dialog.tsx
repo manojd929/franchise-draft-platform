@@ -66,10 +66,11 @@ export function GrantFranchiseLoginDialog({
         return;
       }
       form.reset();
+      const emailForMessage = result.email ?? "that account";
       setDoneMessage(
         result.linkedExisting
-          ? `${result.email ?? "That account"} already had a HuliCourt login, so we linked it here instead of creating a new one. The password you entered was not used; they sign in with their existing password. Now assign their franchise on Teams.`
-          : `Created login for ${result.email ?? "that account"}. Share email and password with them, then assign their franchise on Teams.`,
+          ? `Linked existing account · ${emailForMessage}. Their existing password still works — the one you entered was ignored. Next: assign their franchise on Teams.`
+          : `Created login · ${emailForMessage}. Share the email and password with them, then assign their franchise on Teams.`,
       );
       router.refresh();
     } finally {

@@ -1,12 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
-
-import { DraftPhase, UserRole } from "@/generated/prisma/enums";
-import {
-  ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE,
-  leagueOwnerAdminProvisioningUserMessage,
-} from "@/lib/errors/safe-user-feedback";
+import { DraftPhase } from "@/generated/prisma/enums";
+import { ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE } from "@/lib/errors/safe-user-feedback";
 import { prisma } from "@/lib/prisma";
-
+import {
+  isSupabaseAdminConfigured,
+  SupabaseAdminUnavailableError,
+} from "@/lib/supabase/admin-client";
+import { provisionOwnerLoginForTournament } from "@/services/owner-provisioning";
 import { assertTournamentOwnership, TournamentServiceError } from "@/services/tournament-service";
 
 import type {
@@ -14,12 +13,44 @@ import type {
   CreateLeagueOwnerInput,
 } from "@/validations/league-account";
 
+/**
+ * Provisions (or links) a team-owner login for the given tournament.
+ *
+ * Concurrency: safe under two organizers hitting this at the same instant
+ * for the same email — the underlying provisioner in
+ * `owner-provisioning.ts` re-reads the profile after a Supabase
+ * email-conflict error, so the loser of the create race silently links to
+ * the just-created profile instead of failing.
+ *
+ * When `linkedExisting` is `true` in the result, the caller-supplied
+ * password was ignored; the existing account keeps its previous password.
+ */
 export async function createLeagueOwnerAccount(
-  commissionerUserId: string,
+  organizerUserId: string,
   input: CreateLeagueOwnerInput,
 ): Promise<{ userId: string; email: string; linkedExisting: boolean }> {
-  const tournamentId = await assertTournamentOwnership(input.tournamentSlug, commissionerUserId);
+  const tournamentId = await assertTournamentOwnership(input.tournamentSlug, organizerUserId);
+  await assertTournamentAcceptsNewOwnerLogins(tournamentId);
 
+  const normalizedEmail = input.email.trim().toLowerCase();
+  const displayName = normalizeDisplayName(input.displayName);
+
+  try {
+    return await provisionOwnerLoginForTournament({
+      requestingUserId: organizerUserId,
+      normalizedEmail,
+      password: input.password,
+      displayName,
+    });
+  } catch (e) {
+    if (e instanceof SupabaseAdminUnavailableError) {
+      throw new TournamentServiceError(ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE);
+    }
+    throw e;
+  }
+}
+
+async function assertTournamentAcceptsNewOwnerLogins(tournamentId: string): Promise<void> {
   const tournament = await prisma.tournament.findFirst({
     where: { id: tournamentId },
     select: { draftPhase: true },
@@ -29,104 +60,14 @@ export async function createLeagueOwnerAccount(
   }
   if (tournament.draftPhase !== DraftPhase.SETUP && tournament.draftPhase !== DraftPhase.READY) {
     throw new TournamentServiceError(
-      "Cannot create franchise owner logins after the draft configuration is sealed.",
+      "Cannot create team-owner logins after the draft configuration is sealed.",
     );
   }
+}
 
-  const normalizedEmail = input.email.trim().toLowerCase();
-
-  // A real person plausibly owns franchises across more than one commissioner's
-  // tournament (different leagues, same player). Rather than failing outright
-  // when the email already has an account elsewhere, link that existing login
-  // to this tournament instead of trying (and failing) to create a duplicate.
-  // We never touch the password of an existing account here.
-  const existingProfile = await prisma.userProfile.findFirst({
-    where: {
-      email: { equals: normalizedEmail, mode: "insensitive" },
-      deletedAt: null,
-    },
-    select: { id: true, email: true, role: true },
-  });
-
-  if (existingProfile) {
-    if (existingProfile.id === commissionerUserId) {
-      throw new TournamentServiceError(
-        "That is your own commissioner login. Franchise owners need a separate account.",
-      );
-    }
-    if (existingProfile.role === UserRole.ADMIN) {
-      throw new TournamentServiceError(
-        "That email belongs to a commissioner/admin account and cannot be granted a franchise-owner login.",
-      );
-    }
-    if (existingProfile.role !== UserRole.OWNER) {
-      await prisma.userProfile.update({
-        where: { id: existingProfile.id },
-        data: { role: UserRole.OWNER },
-      });
-    }
-    return {
-      userId: existingProfile.id,
-      email: existingProfile.email,
-      linkedExisting: true,
-    };
-  }
-
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url?.trim() || !serviceKey?.trim()) {
-    throw new TournamentServiceError(ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE);
-  }
-
-  const adminClient = createClient(url, serviceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-
-  const displayTrimmed = input.displayName?.trim() ?? "";
-
-  const { data, error } = await adminClient.auth.admin.createUser({
-    email: normalizedEmail,
-    password: input.password,
-    email_confirm: true,
-    user_metadata:
-      displayTrimmed !== ""
-        ? {
-            full_name: displayTrimmed,
-          }
-        : undefined,
-  });
-
-  if (error) {
-    throw new TournamentServiceError(leagueOwnerAdminProvisioningUserMessage(error.message));
-  }
-
-  const authUser = data.user;
-  if (!authUser) {
-    throw new TournamentServiceError("Could not create that login.");
-  }
-
-  const resolvedEmail = authUser.email ?? normalizedEmail;
-
-  await prisma.userProfile.upsert({
-    where: { id: authUser.id },
-    create: {
-      id: authUser.id,
-      email: resolvedEmail,
-      displayName: displayTrimmed !== "" ? displayTrimmed : null,
-      role: UserRole.OWNER,
-    },
-    update: {
-      email: resolvedEmail,
-      role: UserRole.OWNER,
-      ...(displayTrimmed !== "" ? { displayName: displayTrimmed } : {}),
-    },
-  });
-
-  return { userId: authUser.id, email: resolvedEmail, linkedExisting: false };
+function normalizeDisplayName(raw: string | undefined): string | undefined {
+  const trimmed = raw?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : undefined;
 }
 
 export async function createLeagueOwnerForPlayerAccount(
@@ -178,16 +119,28 @@ export async function createLeagueOwnerForPlayerAccount(
     }
   }
 
-  await prisma.player.update({
-    where: { id: player.id },
+  /**
+   * Conditional update guards against a lost-update race: if two organizers
+   * assign a login to the same player concurrently, both see
+   * `linkedOwnerUserId: null` on the read above and both try to write. The
+   * `where.linkedOwnerUserId: null` clause makes the second write a no-op
+   * (0 rows affected) instead of silently overwriting the first winner.
+   */
+  const linkResult = await prisma.player.updateMany({
+    where: { id: player.id, linkedOwnerUserId: null, deletedAt: null },
     data: { linkedOwnerUserId: userId },
   });
+  if (linkResult.count === 0) {
+    throw new TournamentServiceError(
+      "Another organizer just linked a login to this player. Reload the page to see the current state.",
+    );
+  }
 
   return { email, linkedExisting };
 }
 
-export function isLeagueOwnerInviteConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() && process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
-  );
-}
+/**
+ * Alias kept for existing UI callers. Team-owner-login provisioning requires
+ * Supabase admin capability, so this is exactly the same check.
+ */
+export const isLeagueOwnerInviteConfigured = isSupabaseAdminConfigured;

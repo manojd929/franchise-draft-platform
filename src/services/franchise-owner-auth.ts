@@ -1,8 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
-
 import { UserRole } from "@/generated/prisma/enums";
 import { ADMIN_FRANCHISE_OWNER_AUTH_UNAVAILABLE } from "@/lib/errors/safe-user-feedback";
 import { prisma } from "@/lib/prisma";
+import {
+  createSupabaseAdminClient,
+  SupabaseAdminUnavailableError,
+} from "@/lib/supabase/admin-client";
 
 /**
  * Deletes the auth-backed user profile when nothing references this id as a franchise owner.
@@ -34,19 +36,15 @@ export async function deleteAuthUserIfNoOwnerReferences(userId: string): Promise
     return;
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url?.trim() || !serviceKey?.trim()) {
-    throw new Error(ADMIN_FRANCHISE_OWNER_AUTH_UNAVAILABLE);
+  let adminClient;
+  try {
+    adminClient = createSupabaseAdminClient();
+  } catch (e) {
+    if (e instanceof SupabaseAdminUnavailableError) {
+      throw new Error(ADMIN_FRANCHISE_OWNER_AUTH_UNAVAILABLE);
+    }
+    throw e;
   }
-
-  const adminClient = createClient(url, serviceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
 
   const { error } = await adminClient.auth.admin.deleteUser(userId);
   if (error) {
