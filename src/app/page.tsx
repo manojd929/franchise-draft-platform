@@ -6,8 +6,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { APP_NAME, ROUTES } from "@/constants/app";
 import { cn } from "@/lib/utils";
 
-const LOGO_SRC = "/brand/hulicourt-lockup.webp";
-const LOGO_RATIO = { width: 173, height: 150 };
+const LOGO_SRC = "/brand/hulicourt-lockup-full.webp";
+const LOGO_RATIO = { width: 291, height: 340 };
 
 export default function LandingPage() {
   return (
@@ -16,38 +16,43 @@ export default function LandingPage() {
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(0.9_0.13_92/0.5),transparent_55%),radial-gradient(ellipse_at_bottom_right,oklch(0.95_0.06_96/0.55),transparent_45%)] dark:bg-[radial-gradient(ellipse_at_top,oklch(0.83_0.16_86/0.2),transparent_55%),radial-gradient(ellipse_at_bottom_right,oklch(0.8_0.13_82/0.08),transparent_42%)]"
         aria-hidden
       />
-      <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-8 md:px-16 md:py-6">
-        <Image
-          src={LOGO_SRC}
-          alt={APP_NAME}
-          width={LOGO_RATIO.width}
-          height={LOGO_RATIO.height}
-          className="h-11 w-auto shrink-0 rounded-xl sm:h-12"
-          priority
-        />
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <ThemeToggle />
-          <Link href={ROUTES.login} className={cn(buttonVariants({ variant: "ghost" }), "min-h-10")}>
-            Sign in
-          </Link>
-          <Link href={ROUTES.dashboard} className={cn(buttonVariants(), "min-h-10")}>
-            My tournaments
-          </Link>
+      <header className="relative z-10 px-4 py-5 sm:px-8 md:px-16 md:py-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4">
+          <Image
+            src={LOGO_SRC}
+            alt={APP_NAME}
+            width={LOGO_RATIO.width}
+            height={LOGO_RATIO.height}
+            className="h-12 w-auto shrink-0 rounded-xl sm:h-14"
+            priority
+          />
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <ThemeToggle />
+            <Link
+              href={ROUTES.login}
+              className={cn(buttonVariants({ variant: "ghost" }), "min-h-10")}
+            >
+              Sign in
+            </Link>
+            <Link href={ROUTES.dashboard} className={cn(buttonVariants(), "min-h-10")}>
+              My tournaments
+            </Link>
+          </div>
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-4 pb-16 pt-6 sm:px-8 md:px-16 md:pb-24 md:pt-10">
-        <p className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-brand-accent sm:text-xs">
+      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-4 pt-6 pb-16 sm:px-8 md:px-16 md:pt-10 md:pb-24">
+        <p className="inline-flex items-center gap-2 text-[10px] font-semibold tracking-widest text-brand-accent uppercase sm:text-xs">
           <span className="size-1.5 rounded-full bg-brand" aria-hidden />
           Draft. Auction. Play. Win.
         </p>
-        <h1 className="mt-4 max-w-4xl text-balance text-3xl font-semibold leading-tight tracking-tight sm:mt-8 sm:text-5xl md:text-6xl lg:text-7xl dark:text-white">
+        <h1 className="mt-4 max-w-4xl text-3xl leading-tight font-semibold tracking-tight text-balance sm:mt-8 sm:text-5xl md:text-6xl lg:text-7xl dark:text-white">
           Run your club&apos;s draft or auction like the big leagues.
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:mt-8 sm:text-lg md:text-xl dark:text-white/75">
-          Pick how squads are formed: snake draft, instant random, or a live IPL-style
-          auction with team purses. Owners join from their phones; the room watches on the
-          big screen. Built for racquet sports: badminton, pickleball, tennis, table tennis.
+          Pick how squads are formed: snake draft, instant random, or a live IPL-style auction with
+          team purses. Owners join from their phones; the room watches on the big screen. Built for
+          racquet sports: badminton, pickleball, tennis, table tennis.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:mt-12 sm:flex-row sm:flex-wrap sm:gap-4">
           <Link
@@ -61,7 +66,10 @@ export default function LandingPage() {
           </Link>
           <Link
             href={ROUTES.login}
-            className={cn(buttonVariants({ size: "lg", variant: "outline" }), "min-h-12 w-full sm:w-auto")}
+            className={cn(
+              buttonVariants({ size: "lg", variant: "outline" }),
+              "min-h-12 w-full sm:w-auto",
+            )}
           >
             I already have an account
           </Link>
