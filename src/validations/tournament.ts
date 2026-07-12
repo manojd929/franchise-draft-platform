@@ -128,6 +128,27 @@ export const updatePlayerSchema = z.object({
 
 export type UpdatePlayerInput = z.infer<typeof updatePlayerSchema>;
 
+export const BULK_CREATE_PLAYERS_MAX = 500;
+
+export const bulkCreatePlayersSchema = z.object({
+  tournamentSlug: z.string().min(1),
+  players: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(120),
+        rosterCategoryId: z.string().uuid(),
+        gender: z.enum(["MALE", "FEMALE", "OTHER"]),
+        notes: z.string().max(500).optional(),
+        hasPaidEntryFee: z.boolean().optional(),
+        basePrice: z.number().int().min(0).max(1_000_000).optional(),
+      }),
+    )
+    .min(1)
+    .max(BULK_CREATE_PLAYERS_MAX),
+});
+
+export type BulkCreatePlayersInput = z.infer<typeof bulkCreatePlayersSchema>;
+
 export const bulkUpdatePlayersSchema = z
   .object({
     tournamentSlug: z.string().min(1),

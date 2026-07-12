@@ -154,7 +154,7 @@ export function PlayersQuickAdd({
               placeholder="Playing style, doubles preference…"
             />
             <p className="text-xs text-muted-foreground">
-              Add scouting or pairing context your commissioner desk may want during nominations.
+              Add scouting or pairing context you may want during nominations.
             </p>
           </div>
 

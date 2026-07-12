@@ -3,6 +3,8 @@ export const APP_NAME = "HuliCourt";
 export const ROUTES = {
   home: "/",
   login: "/login",
+  forgotPassword: "/forgot-password",
+  resetPassword: "/auth/reset-password",
   apiAuthEstablishSession: "/api/auth/establish-session",
   dashboard: "/dashboard",
   settings: "/settings",

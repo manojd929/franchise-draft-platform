@@ -34,11 +34,13 @@ import {
   resolveOwnerStubCategoryIdTx,
   seedDefaultRosterCategories,
   assertActiveRosterCategoryForPlayer,
+  assertActiveRosterCategoryForPlayerTx,
 } from "@/services/roster-category-service";
 import { TournamentServiceError } from "@/services/tournament-errors";
 import { tournamentSlugFromName } from "@/utils/tournament-slug";
 
 import type {
+  BulkCreatePlayersInput,
   BulkUpdatePlayersInput,
   CreatePlayerInput,
   CreateTeamInput,
@@ -566,6 +568,49 @@ export async function createPlayer(userId: string, input: CreatePlayerInput) {
       basePrice: input.basePrice ?? null,
     },
   });
+}
+
+/**
+ * Insert many players in one transaction.
+ *
+ * Each distinct roster group referenced by the batch is validated once against
+ * the tournament (active + non-archived) inside the transaction; if any check
+ * fails, the whole insert rolls back so the caller never lands in a
+ * partial-import state. Squad-rule reconciliation runs once at the end because
+ * category composition may have changed.
+ */
+export async function createPlayersInBulk(
+  userId: string,
+  input: BulkCreatePlayersInput,
+): Promise<{ createdCount: number }> {
+  const tournamentId = await assertTournamentOwnership(input.tournamentSlug, userId);
+
+  const uniqueRosterCategoryIds = Array.from(
+    new Set(input.players.map((player) => player.rosterCategoryId)),
+  );
+
+  const createdCount = await prisma.$transaction(async (tx) => {
+    for (const rosterCategoryId of uniqueRosterCategoryIds) {
+      await assertActiveRosterCategoryForPlayerTx(tx, tournamentId, rosterCategoryId);
+    }
+
+    const result = await tx.player.createMany({
+      data: input.players.map((player) => ({
+        tournamentId,
+        name: player.name.trim(),
+        photoUrl: null,
+        rosterCategoryId: player.rosterCategoryId,
+        gender: player.gender,
+        notes: player.notes?.trim() ? player.notes.trim() : null,
+        hasPaidEntryFee: player.hasPaidEntryFee ?? false,
+        basePrice: player.basePrice ?? null,
+      })),
+    });
+    return result.count;
+  });
+
+  await reconcileSquadRulesForTournament(tournamentId);
+  return { createdCount };
 }
 
 export async function updatePlayer(userId: string, input: UpdatePlayerInput) {

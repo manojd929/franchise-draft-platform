@@ -1,28 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { APP_NAME, ROUTES } from "@/constants/app";
-import { LoginForm } from "@/features/auth/login-form";
-import { getSessionUser } from "@/lib/auth/session";
-import { sanitizeNextPath } from "@/lib/navigation/sanitize-next-path";
+import { ForgotPasswordForm } from "@/features/auth/forgot-password-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ next?: string }>;
-}) {
-  const params = await searchParams;
-  const nextPath = sanitizeNextPath(params.next, ROUTES.dashboard);
-
-  const sessionUser = await getSessionUser();
-  if (sessionUser) {
-    redirect(nextPath);
-  }
-
+export default function ForgotPasswordPage() {
   return (
     <div className="relative min-h-[100dvh] bg-background text-foreground dark:bg-neutral-950">
       <div
@@ -32,10 +17,10 @@ export default async function LoginPage({
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5 md:px-6 md:py-8 lg:py-10">
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border/40 pb-3 text-sm md:border-0 md:pb-0">
           <Link
-            href={ROUTES.home}
+            href={ROUTES.login}
             className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-md py-1.5 pr-1.5 text-muted-foreground ring-offset-background transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            ← Back to landing
+            ← Back to sign in
           </Link>
           <ThemeToggle />
         </header>
@@ -49,13 +34,8 @@ export default async function LoginPage({
             className="mx-auto mb-6 h-24 w-auto rounded-xl sm:h-28"
             priority
           />
-          <LoginForm nextPath={nextPath} />
+          <ForgotPasswordForm />
         </main>
-
-        <footer className="shrink-0 border-t border-border/40 px-0.5 pt-5 text-center text-sm leading-snug text-foreground/72 md:border-0 md:pt-6 md:leading-relaxed dark:text-foreground/78">
-          Players on the roster don&rsquo;t need an account — the organizer shares fixtures and
-          standings by link.
-        </footer>
       </div>
     </div>
   );

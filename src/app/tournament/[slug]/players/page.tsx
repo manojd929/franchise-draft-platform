@@ -97,6 +97,7 @@ export default async function PlayersPage({ params }: PageProps) {
           uploadsEnabled={uploadsEnabled}
           selectableCategories={selectableCategories}
           defaultRosterCategoryId={defaultRosterCategoryId}
+          existingPlayerNamesLower={players.map((player) => player.name.toLowerCase())}
         />
       ) : null}
 

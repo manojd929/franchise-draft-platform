@@ -18,12 +18,14 @@ import {
   PlayersQuickAdd,
   type RosterCategorySelectOption,
 } from "@/features/tournaments/players-quick-add";
+import { PlayersBulkImportSheet } from "@/features/tournaments/players-bulk-import-sheet";
 
 interface PlayersSetupToolbarProps {
   tournamentSlug: string;
   uploadsEnabled: boolean;
   selectableCategories: RosterCategorySelectOption[];
   defaultRosterCategoryId: string;
+  existingPlayerNamesLower: string[];
 }
 
 export function PlayersSetupToolbar({
@@ -31,6 +33,7 @@ export function PlayersSetupToolbar({
   uploadsEnabled,
   selectableCategories,
   defaultRosterCategoryId,
+  existingPlayerNamesLower,
 }: PlayersSetupToolbarProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const canAddPlayers = selectableCategories.length > 0;
@@ -44,33 +47,41 @@ export function PlayersSetupToolbar({
         Manage roster groups →
       </Link>
       {canAddPlayers ? (
-        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetTrigger
-            type="button"
-            className={cn(buttonVariants({ variant: "default" }), "min-h-11")}
-          >
-            Add player
-          </SheetTrigger>
-          <SheetContent side="right" className="w-full gap-0 sm:max-w-md md:max-w-lg">
-            <SheetHeader className="border-b border-border/60 pb-4">
-              <SheetTitle>Add player</SheetTitle>
-              <SheetDescription>
-                Capture roster details privately on this desk; share credentials outside HuliCourt
-                when you invite franchise owners.
-              </SheetDescription>
-            </SheetHeader>
-            <div className="flex-1 overflow-y-auto px-6 py-6">
-              <PlayersQuickAdd
-                tournamentSlug={tournamentSlug}
-                uploadsEnabled={uploadsEnabled}
-                selectableCategories={selectableCategories}
-                defaultRosterCategoryId={defaultRosterCategoryId}
-                variant="plain"
-                onCreated={() => setSheetOpen(false)}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
+        <div className="flex flex-wrap items-center gap-2">
+          <PlayersBulkImportSheet
+            tournamentSlug={tournamentSlug}
+            rosterCategories={selectableCategories}
+            defaultRosterCategoryId={defaultRosterCategoryId}
+            existingPlayerNamesLower={existingPlayerNamesLower}
+          />
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger
+              type="button"
+              className={cn(buttonVariants({ variant: "default" }), "min-h-11")}
+            >
+              Add player
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full gap-0 sm:max-w-md md:max-w-lg">
+              <SheetHeader className="border-b border-border/60 pb-4">
+                <SheetTitle>Add player</SheetTitle>
+                <SheetDescription>
+                  Capture roster details privately on this desk; share credentials outside HuliCourt
+                  when you invite franchise owners.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto px-6 py-6">
+                <PlayersQuickAdd
+                  tournamentSlug={tournamentSlug}
+                  uploadsEnabled={uploadsEnabled}
+                  selectableCategories={selectableCategories}
+                  defaultRosterCategoryId={defaultRosterCategoryId}
+                  variant="plain"
+                  onCreated={() => setSheetOpen(false)}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       ) : (
         <Link
           href={ROUTES.categories(tournamentSlug)}

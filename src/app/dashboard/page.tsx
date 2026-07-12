@@ -12,11 +12,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DeleteTournamentButton } from "@/features/dashboard/delete-tournament-button";
+import { TournamentSetupChecklistPanel } from "@/features/dashboard/tournament-setup-checklist";
 import { ROUTES } from "@/constants/app";
 import { DRAFT_PHASE_LABEL } from "@/constants/draft-phase-labels";
 import { SPORT_META } from "@/constants/sport-meta";
 import { TOURNAMENT_FORMAT_LABEL } from "@/constants/tournament-format-labels";
 import { UserRole } from "@/generated/prisma/enums";
+import { computeTournamentSetupChecklist } from "@/lib/tournaments/tournament-setup-checklist";
 import {
   tournamentDashboardListSelect,
   type TournamentDashboardListRow,
@@ -178,65 +180,83 @@ export default async function DashboardPage() {
               ) : null}
             </Card>
           ) : (
-            tournaments.map((tournament) => (
-              <Card key={tournament.id} className="border-border/70 bg-card/60 backdrop-blur-sm">
-                <CardHeader>
-                  {userRole === UserRole.ADMIN ? (
-                    <CardAction>
-                      <DeleteTournamentButton
-                        tournamentSlug={tournament.slug}
-                        tournamentName={tournament.name}
-                        iconOnly
-                      />
-                    </CardAction>
-                  ) : null}
-                  <div className="flex items-start justify-between gap-3 pr-2">
-                    <div>
-                      <CardTitle className="text-xl">{tournament.name}</CardTitle>
-                      <CardDescription className="font-mono text-xs">
-                        /{tournament.slug}
-                      </CardDescription>
-                    </div>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        (tournament.draftPhase === "LIVE" || tournament.draftPhase === "PAUSED") &&
-                          "border-brand/40 bg-brand/15 text-brand-accent",
-                      )}
-                    >
-                      {(tournament.draftPhase === "LIVE" || tournament.draftPhase === "PAUSED") && (
-                        <span
-                          className="mr-1.5 inline-block size-1.5 animate-pulse rounded-full bg-brand align-middle"
-                          aria-hidden
+            tournaments.map((tournament) => {
+              const checklist = computeTournamentSetupChecklist({
+                tournamentSlug: tournament.slug,
+                counts: {
+                  activeRosterCategories: tournament._count.rosterCategories,
+                  activeTeams: tournament._count.teams,
+                  activePlayers: tournament._count.players,
+                  teamsWithOwner: tournament.teams.length,
+                  configuredSquadRules: tournament._count.squadRules,
+                  draftPhase: tournament.draftPhase,
+                },
+              });
+              return (
+                <Card key={tournament.id} className="border-border/70 bg-card/60 backdrop-blur-sm">
+                  <CardHeader>
+                    {userRole === UserRole.ADMIN ? (
+                      <CardAction>
+                        <DeleteTournamentButton
+                          tournamentSlug={tournament.slug}
+                          tournamentName={tournament.name}
+                          iconOnly
                         />
-                      )}
-                      {DRAFT_PHASE_LABEL[tournament.draftPhase]}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                    <span>
-                      {SPORT_META[tournament.sport].emoji} {SPORT_META[tournament.sport].label}
-                    </span>
-                    <span>{tournament._count.teams} teams</span>
-                    <span>{tournament._count.players} players</span>
-                    <span>{TOURNAMENT_FORMAT_LABEL[tournament.format]}</span>
-                  </div>
-                  <div className="border-t border-border/60 pt-4">
-                    <Link
-                      href={ROUTES.tournament(tournament.slug)}
-                      className={cn(
-                        buttonVariants({ variant: "default", size: "sm" }),
-                        "min-h-11 w-full touch-manipulation justify-center px-4 sm:min-h-9",
-                      )}
-                    >
-                      Enter
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                      </CardAction>
+                    ) : null}
+                    <div className="flex items-start justify-between gap-3 pr-2">
+                      <div>
+                        <CardTitle className="text-xl">{tournament.name}</CardTitle>
+                        <CardDescription className="font-mono text-xs">
+                          /{tournament.slug}
+                        </CardDescription>
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          (tournament.draftPhase === "LIVE" ||
+                            tournament.draftPhase === "PAUSED") &&
+                            "border-brand/40 bg-brand/15 text-brand-accent",
+                        )}
+                      >
+                        {(tournament.draftPhase === "LIVE" ||
+                          tournament.draftPhase === "PAUSED") && (
+                          <span
+                            className="mr-1.5 inline-block size-1.5 animate-pulse rounded-full bg-brand align-middle"
+                            aria-hidden
+                          />
+                        )}
+                        {DRAFT_PHASE_LABEL[tournament.draftPhase]}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-4">
+                    <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                      <span>
+                        {SPORT_META[tournament.sport].emoji} {SPORT_META[tournament.sport].label}
+                      </span>
+                      <span>{tournament._count.teams} teams</span>
+                      <span>{tournament._count.players} players</span>
+                      <span>{TOURNAMENT_FORMAT_LABEL[tournament.format]}</span>
+                    </div>
+                    {userRole === UserRole.ADMIN ? (
+                      <TournamentSetupChecklistPanel checklist={checklist} />
+                    ) : null}
+                    <div className="border-t border-border/60 pt-4">
+                      <Link
+                        href={ROUTES.tournament(tournament.slug)}
+                        className={cn(
+                          buttonVariants({ variant: "default", size: "sm" }),
+                          "min-h-11 w-full touch-manipulation justify-center px-4 sm:min-h-9",
+                        )}
+                      >
+                        Enter
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </section>
       )}

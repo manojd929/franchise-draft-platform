@@ -13,6 +13,7 @@ import {
   assertTournamentOwnership,
   bulkUpdatePlayers,
   createPlayer,
+  createPlayersInBulk,
   createTeam,
   createTournament,
   deleteFranchiseOwnerFromTournament,
@@ -33,6 +34,7 @@ import {
   revokeFranchiseLoginFromPlayerSchema,
 } from "@/validations/league-account";
 import {
+  bulkCreatePlayersSchema,
   bulkUpdatePlayersSchema,
   createPlayerSchema,
   createTeamSchema,
@@ -62,7 +64,13 @@ import {
 } from "@/services/roster-category-service";
 
 export type TournamentActionResult =
-  | { ok: true; slug?: string; email?: string; linkedExisting?: boolean }
+  | {
+      ok: true;
+      slug?: string;
+      email?: string;
+      linkedExisting?: boolean;
+      createdCount?: number;
+    }
   | { ok: false; error: string };
 
 function handle(err: unknown): TournamentActionResult {
@@ -209,6 +217,26 @@ export async function createPlayerAction(input: unknown): Promise<TournamentActi
     revalidatePath(`/tournament/${slug}/players`);
     revalidatePath(`/tournament/${slug}/categories`);
     return { ok: true, slug };
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return { ok: false, error: "Unauthorized" };
+    }
+    return handle(e);
+  }
+}
+
+export async function bulkCreatePlayersAction(input: unknown): Promise<TournamentActionResult> {
+  try {
+    const parsed = bulkCreatePlayersSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, error: "Invalid bulk player import." };
+    const user = await requireSessionUser();
+    const { createdCount } = await createPlayersInBulk(user.id, parsed.data);
+    const slug = parsed.data.tournamentSlug;
+    revalidatePath(`/tournament/${slug}`, "layout");
+    revalidatePath(`/tournament/${slug}/players`);
+    revalidatePath(`/tournament/${slug}/categories`);
+    revalidatePath(`/tournament/${slug}/rules`);
+    return { ok: true, slug, createdCount };
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
       return { ok: false, error: "Unauthorized" };

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { type FormEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -89,10 +90,8 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold tracking-tight text-balance">Sign in</h1>
         <p className="text-sm leading-relaxed text-foreground/72 sm:text-base dark:text-foreground/80">
-          League organizers and franchise owners use the email and password the commissioner gave
-          you. During the auction, franchise owners should open the{" "}
-          <span className="font-medium text-foreground">Owner</span> screen after signing in. The
-          same login works every week.
+          Use the email and password your organizer sent you. We&rsquo;ll take you to the right
+          screen — organizers land on the dashboard, team owners on their team.
         </p>
       </div>
 
@@ -115,9 +114,17 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="password" className="text-foreground">
-            Password
-          </Label>
+          <div className="flex items-baseline justify-between">
+            <Label htmlFor="password" className="text-foreground">
+              Password
+            </Label>
+            <Link
+              href={ROUTES.forgotPassword}
+              className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <Input
             id="password"
             data-testid="login-password"
@@ -146,9 +153,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       </form>
 
       <p className="border-t border-border/50 pt-4 text-center text-sm leading-snug text-foreground/72 md:leading-relaxed dark:text-foreground/78">
-        New franchise owner? Your commissioner creates your login from{" "}
-        <span className="font-medium text-foreground">Teams</span>. Forgot password? Ask them to
-        reset or re-invite you. Starting your own league?{" "}
+        Starting your own league?{" "}
         <a className="font-medium text-foreground underline" href="/signup">
           Create an organizer account
         </a>

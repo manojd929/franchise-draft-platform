@@ -56,9 +56,8 @@ export default async function TournamentCategoriesPage({ params }: PageProps) {
           Roster groups
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-          Define tournament-specific categories: these drive player assignment, commissioner
-          filters, squad rules, and pills on every auction surface. Customize labels, tint colors,
-          and order before inviting players.
+          Define tournament-specific groups that drive player assignment, squad rules, and pills on
+          every auction surface. Customize labels, tint colors, and order before inviting players.
         </p>
       </header>
 
