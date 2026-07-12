@@ -113,119 +113,121 @@ export default async function LandingPage() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-6 pb-16 sm:px-8 md:px-16 md:pt-10 md:pb-24">
-        <section aria-labelledby="hero-heading">
-          <p className="inline-flex items-center gap-2 text-[10px] font-semibold tracking-widest text-brand-accent uppercase sm:text-xs">
-            <span className="size-1.5 rounded-full bg-brand" aria-hidden />
-            Draft. Auction. Play. Win.
-          </p>
-          <h1
-            id="hero-heading"
-            className="mt-4 max-w-4xl text-3xl leading-tight font-semibold tracking-tight text-balance sm:mt-8 sm:text-5xl md:text-6xl lg:text-7xl dark:text-white"
-          >
-            Run your club&apos;s draft or auction like the big leagues.
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:mt-8 sm:text-lg md:text-xl dark:text-white/75">
-            Snake draft, one-tap random assignment, or a live IPL-style auction. Owners bid from
-            their phones; the room watches on the big screen. Built for badminton, pickleball,
-            tennis, and table tennis.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:mt-12 sm:flex-row sm:flex-wrap sm:gap-4">
-            <Link
-              href={ROUTES.tournamentNew}
-              className={cn(
-                buttonVariants({ size: "lg" }),
-                "min-h-12 w-full bg-brand text-brand-foreground hover:bg-brand/90 focus-visible:ring-brand/50 sm:w-auto",
-              )}
+      <main className="relative z-10 flex flex-1 flex-col px-4 pt-6 pb-16 sm:px-8 md:px-16 md:pt-10 md:pb-24">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col">
+          <section aria-labelledby="hero-heading">
+            <p className="inline-flex items-center gap-2 text-[10px] font-semibold tracking-widest text-brand-accent uppercase sm:text-xs">
+              <span className="size-1.5 rounded-full bg-brand" aria-hidden />
+              Draft. Auction. Play. Win.
+            </p>
+            <h1
+              id="hero-heading"
+              className="mt-4 max-w-4xl text-3xl leading-tight font-semibold tracking-tight text-balance sm:mt-8 sm:text-5xl md:text-6xl lg:text-7xl dark:text-white"
             >
-              Start a tournament
-            </Link>
-            <Link
-              href={ROUTES.login}
-              className={cn(
-                buttonVariants({ size: "lg", variant: "outline" }),
-                "min-h-12 w-full sm:w-auto",
-              )}
+              Run your club&apos;s draft or auction like the big leagues.
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:mt-8 sm:text-lg md:text-xl dark:text-white/75">
+              Snake draft, one-tap random assignment, or a live IPL-style auction. Owners bid from
+              their phones; the room watches on the big screen. Built for badminton, pickleball,
+              tennis, and table tennis.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:mt-12 sm:flex-row sm:flex-wrap sm:gap-4">
+              <Link
+                href={ROUTES.tournamentNew}
+                className={cn(
+                  buttonVariants({ size: "lg" }),
+                  "min-h-12 w-full bg-brand text-brand-foreground hover:bg-brand/90 focus-visible:ring-brand/50 sm:w-auto",
+                )}
+              >
+                Start a tournament
+              </Link>
+              <Link
+                href={ROUTES.login}
+                className={cn(
+                  buttonVariants({ size: "lg", variant: "outline" }),
+                  "min-h-12 w-full sm:w-auto",
+                )}
+              >
+                I already have an account
+              </Link>
+            </div>
+          </section>
+
+          <section id="how-it-works" aria-labelledby="journey-heading" className="mt-16 sm:mt-24">
+            <h2
+              id="journey-heading"
+              className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl"
             >
-              I already have an account
-            </Link>
-          </div>
-        </section>
-
-        <section id="how-it-works" aria-labelledby="journey-heading" className="mt-16 sm:mt-24">
-          <h2
-            id="journey-heading"
-            className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl"
-          >
-            How it works
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            Five steps from empty room to winners&rsquo; podium. You can set up a full tournament in
-            about ten minutes.
-          </p>
-          <ol className="mt-8 grid gap-4 sm:mt-10 sm:grid-cols-2 lg:grid-cols-3">
-            {ORGANIZER_JOURNEY.map((step) => (
-              <li
-                key={step.step}
-                className="flex gap-4 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm backdrop-blur-md sm:p-6 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none"
-              >
-                <span
-                  aria-hidden
-                  className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand-accent"
+              How it works
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+              Five steps from empty room to winners&rsquo; podium. You can set up a full tournament
+              in about ten minutes.
+            </p>
+            <ol className="mt-8 grid gap-4 sm:mt-10 sm:grid-cols-2 lg:grid-cols-3">
+              {ORGANIZER_JOURNEY.map((step) => (
+                <li
+                  key={step.step}
+                  className="flex gap-4 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm backdrop-blur-md sm:p-6 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none"
                 >
-                  {step.step}
-                </span>
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground dark:text-white">
-                    {step.title}
-                  </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground dark:text-white/70">
-                    {step.body}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
+                  <span
+                    aria-hidden
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand-accent"
+                  >
+                    {step.step}
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground dark:text-white">
+                      {step.title}
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground dark:text-white/70">
+                      {step.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
 
-        <section aria-labelledby="personas-heading" className="mt-16 sm:mt-24">
-          <h2
-            id="personas-heading"
-            className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl"
-          >
-            Who&apos;s on the app
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            Not sure which door to walk through? Pick your role.
-          </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {PERSONAS.map((persona) => (
-              <div
-                key={persona.title}
-                className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm backdrop-blur-md sm:p-6 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none"
-              >
-                <div>
-                  <p className="text-[10px] font-semibold tracking-widest text-brand-accent uppercase">
-                    {persona.eyebrow}
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold">{persona.title}</h3>
-                </div>
-                <p className="flex-1 text-sm leading-relaxed text-muted-foreground dark:text-white/70">
-                  {persona.body}
-                </p>
-                <Link
-                  href={persona.cta.href}
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "min-h-10 justify-center",
-                  )}
+          <section aria-labelledby="personas-heading" className="mt-16 sm:mt-24">
+            <h2
+              id="personas-heading"
+              className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl"
+            >
+              Who&apos;s on the app
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+              Not sure which door to walk through? Pick your role.
+            </p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {PERSONAS.map((persona) => (
+                <div
+                  key={persona.title}
+                  className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm backdrop-blur-md sm:p-6 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none"
                 >
-                  {persona.cta.label}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </section>
+                  <div>
+                    <p className="text-[10px] font-semibold tracking-widest text-brand-accent uppercase">
+                      {persona.eyebrow}
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold">{persona.title}</h3>
+                  </div>
+                  <p className="flex-1 text-sm leading-relaxed text-muted-foreground dark:text-white/70">
+                    {persona.body}
+                  </p>
+                  <Link
+                    href={persona.cta.href}
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "sm" }),
+                      "min-h-10 justify-center",
+                    )}
+                  >
+                    {persona.cta.label}
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
       </main>
     </div>
   );
