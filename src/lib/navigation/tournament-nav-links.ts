@@ -10,9 +10,10 @@ export type TournamentChromeNavGroup = Readonly<{
 }>;
 
 /**
- * Commissioners run the auction from Manage auction; nominee phones use Owner/Auction routes.
+ * Organizers run the auction from Manage auction; nominee phones use Owner/Auction routes.
+ * Participants (team owners) get their My Team tab; organizers get the full toolkit.
  */
-export type TournamentChromeNavViewer = "commissioner" | "participant";
+export type TournamentChromeNavViewer = "organizer" | "participant";
 
 export function tournamentChromeNavLinks(
   slug: string,
@@ -27,7 +28,7 @@ export function tournamentChromeNavGroups(
   viewer: TournamentChromeNavViewer,
   options?: { showFixtures?: boolean },
 ): TournamentChromeNavGroup[] {
-  const commissionerGroups: TournamentChromeNavGroup[] = [
+  const organizerGroups: TournamentChromeNavGroup[] = [
     {
       id: "overview",
       label: "League",
@@ -99,7 +100,7 @@ export function tournamentChromeNavGroups(
     ];
   }
 
-  return commissionerGroups.filter((group) => group.links.length > 0);
+  return organizerGroups.filter((group) => group.links.length > 0);
 }
 
 /** Hub cards on tournament home (`/tournament/[slug]`). */
@@ -109,7 +110,7 @@ export type TournamentHubCard = Readonly<{
   description: string;
   primary?: boolean;
   /**
-   * When true, card is omitted for commissioners (auction creator).
+   * When true, card is omitted for organizers (auction creator).
    * Franchise owners and anyone else signed in without creator rights still sees these.
    */
   participantOnly?: boolean;

@@ -150,7 +150,7 @@ export function TvTeamRosterPanel({
           {pendingPlayers.length > 0 ? (
             <div className="mb-8 space-y-3">
               <h3 className="text-[10px] font-semibold tracking-[0.24em] text-amber-800 uppercase sm:text-[11px] dark:text-amber-200/90">
-                Nomination pending commissioner
+                Awaiting organizer confirmation
               </h3>
               <div className={playerTilesGrid}>
                 {pendingPlayers.map((player) => (

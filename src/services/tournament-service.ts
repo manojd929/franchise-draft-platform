@@ -232,7 +232,7 @@ export async function createTournament(
       select: { id: true, stableKey: true },
     });
     // Default caps must be permissive (never 0): a cap of 0 blocks EVERY bid
-    // and draft pick in that category out of the box. Commissioners tighten
+    // and draft pick in that category out of the box. Organizers tighten
     // caps for composition rules from the Rules page ("Auto-set from roster"
     // or manual). We fall back to picksPerTeam so no category is ever an
     // accidental hard block; legacy stable keys keep their designed caps.
@@ -329,7 +329,7 @@ async function resolveTeamOwnerUserId(
   }
   if (parsed.data === commissionerUserId) {
     throw new TournamentServiceError(
-      "The commissioner cannot be a franchise owner. Create or invite a separate owner login.",
+      "The organizer cannot be a franchise owner. Create or invite a separate owner login.",
     );
   }
   const profile = await prisma.userProfile.findFirst({
@@ -469,7 +469,7 @@ export async function deleteFranchiseOwnerFromTournament(
     );
   }
   if (ownerUserId === tournament.createdById) {
-    throw new TournamentServiceError("You cannot delete the commissioner login.");
+    throw new TournamentServiceError("You cannot delete the organizer login.");
   }
 
   await prisma.team.updateMany({

@@ -45,24 +45,24 @@ interface DraftRoomClientProps {
   /** Subscribe to polling/realtime updates (disable when parent owns sync). */
   syncEnabled?: boolean;
   /**
-   * When the commissioner set a LIVE roster spotlight, franchise + public draft rooms filter the board to that group.
-   * Commissioner desk embeds set `false` so every group stays browsable.
+   * When the organizer set a LIVE roster spotlight, franchise + public draft rooms filter the board to that group.
+   * Organizer desk embeds set `false` so every group stays browsable.
    */
   applyLiveAuctionSpotlightBoardFilter?: boolean;
   /**
-   * Spacious layout vs. commissioner control desk: tighter chrome, scroll-heavy board grid.
+   * Spacious layout vs. organizer control desk: tighter chrome, scroll-heavy board grid.
    */
   auctionDeskLayout?: boolean;
   /** Show compact/comfortable player tile toggle (auction desk only). */
   showBoardDensityToggle?: boolean;
   /**
-   * Commissioner desk only: enlarge portraits and lighten chrome so mugs read well when presenting.
+   * Organizer desk only: enlarge portraits and lighten chrome so mugs read well when presenting.
    */
   emphasizePlayerPresentation?: boolean;
   /** Stretch within a flex/grid parent so the embedded board fills available height. */
   stretchToFit?: boolean;
   /**
-   * Commissioner embed: use a two-column grid (audit rail | player board) instead of a flex row.
+   * Organizer embed: use a two-column grid (audit rail | player board) instead of a flex row.
    * Pair with `auctionDeskLayout` and usually `stretchToFit`.
    */
   deskTwoColumnLayout?: boolean;
@@ -322,8 +322,8 @@ export function DraftRoomClient({
               </p>
             ) : (
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                No franchise is assigned to this login yet. Ask the commissioner to set you as owner
-                on Teams.
+                No franchise is assigned to this login yet. Ask the organizer to set you as owner on
+                Teams.
               </p>
             )}
             {draftLive && currentTeam ? (
@@ -672,7 +672,7 @@ export function DraftRoomClient({
           className="rounded-xl border border-sky-500/30 bg-sky-500/[0.07] px-4 py-3 text-sm leading-relaxed text-foreground backdrop-blur-sm"
           role="status"
         >
-          <span className="font-semibold text-foreground">Commissioner spotlight</span> locked to{" "}
+          <span className="font-semibold text-foreground">Organizer spotlight</span> locked to{" "}
           <RosterCategoryPill
             name={effectiveSnapshot.auctionSpotlightRosterCategoryName}
             colorHex={effectiveSnapshot.auctionSpotlightRosterCategoryColorHex}

@@ -85,6 +85,7 @@ enum DraftLogAction {
   LOT_UNSOLD
   LOT_CANCELLED
   RANDOM_ASSIGNMENT_RUN
+  OWNER_LOGIN_PROVISIONED
 }
 
 /// Racquet sports the platform supports. Match model (singles/doubles + score
@@ -259,7 +260,7 @@ model RosterCategory {
   displayOrder Int       @default(0)
   colorHex     String?
   archivedAt   DateTime?
-  /// Optional stable bucket for automation (e.g. owner stub sync). Commissioner-created categories stay null.
+  /// Optional stable bucket for automation (e.g. owner stub sync). Organizer-created categories stay null.
   stableKey    String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt

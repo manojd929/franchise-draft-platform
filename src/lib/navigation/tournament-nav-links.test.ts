@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { tournamentChromeNavGroups } from "./tournament-nav-links";
 
 describe("tournamentChromeNavGroups", () => {
-  it("groups commissioner links into league, auction, and tournament clusters", () => {
-    const groups = tournamentChromeNavGroups("summer-cup", "commissioner", {
+  it("groups organizer links into league, auction, and tournament clusters", () => {
+    const groups = tournamentChromeNavGroups("summer-cup", "organizer", {
       showFixtures: true,
     });
 
@@ -38,14 +38,14 @@ describe("tournamentChromeNavGroups", () => {
   });
 
   it("hides the entire tournament cluster before fixtures unlock", () => {
-    const commissionerGroups = tournamentChromeNavGroups("summer-cup", "commissioner", {
+    const organizerGroups = tournamentChromeNavGroups("summer-cup", "organizer", {
       showFixtures: false,
     });
     const participantGroups = tournamentChromeNavGroups("summer-cup", "participant", {
       showFixtures: false,
     });
 
-    expect(commissionerGroups.map((group) => group.label)).toEqual(["League", "Auction"]);
+    expect(organizerGroups.map((group) => group.label)).toEqual(["League", "Auction"]);
     expect(participantGroups.map((group) => group.label)).toEqual(["League", "Auction"]);
   });
 });

@@ -8,22 +8,22 @@ import { DashboardFloorLivePreviewPanel } from "./dashboard-floor-live-preview";
 import { DashboardFloorThemePicker } from "./dashboard-floor-theme-picker";
 import { DashboardFloorThemeSwatches } from "./dashboard-floor-theme-swatches";
 
-/** Commissioner-facing control for curated dashboard backdrop themes (persisted locally). */
+/** Organizer-facing control for curated dashboard backdrop themes (persisted locally). */
 export function DashboardFloorAppearanceSettingsCard() {
   const { hydrated, floorTheme, setFloorTheme } = useDashboardAppearance();
 
   return (
     <Card
-      id="commissioner-appearance"
+      id="organizer-appearance"
       className="border-border/60 bg-card/60 shadow-sm backdrop-blur-sm"
     >
       <CardHeader className="border-b border-border/40 pb-4">
         <CardTitle className="text-base tracking-tight sm:text-[1.05rem]">
-          Commissioner dashboard backdrop
+          Dashboard backdrop
         </CardTitle>
         <CardDescription>
-          Choose how the commissioner tournament home looks behind your cards and navigation. Lives
-          on this device only until we sync preferences to your profile.
+          Choose how the tournament home looks behind your cards and navigation. Lives on this
+          device only until we sync preferences to your profile.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8 pt-6">

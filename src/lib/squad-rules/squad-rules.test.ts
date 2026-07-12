@@ -21,7 +21,7 @@ const labels: Record<string, string> = {
 };
 
 describe("sortSquadRulesByRosterCategoryOrder", () => {
-  it("orders rows by commissioner category ladder", () => {
+  it("orders rows by organizer category ladder", () => {
     const mixed = [
       { rosterCategoryId: CAT_ADVANCED, maxCount: 5 },
       { rosterCategoryId: CAT_WOMEN, maxCount: 2 },

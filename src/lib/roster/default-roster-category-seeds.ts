@@ -1,8 +1,8 @@
 /**
  * Starter roster groups created when a tournament is first provisioned — **not** the source of truth.
- * Commissioners rename, archive, add (e.g. Mixed Doubles, Veterans), reorder, and recolor entirely from the
+ * Organizers rename, archive, add (e.g. Mixed Doubles, Veterans), reorder, and recolor entirely from the
  * Roster groups admin UI (`/categories`). Optional `stableKey` only binds automation hooks (owner stubs,
- * default squad-rule hints for migrated defaults); commissioner-created categories keep `stableKey` null.
+ * default squad-rule hints for migrated defaults); organizer-created categories keep `stableKey` null.
  */
 
 export interface DefaultRosterCategorySeedRow {

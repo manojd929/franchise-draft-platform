@@ -24,7 +24,7 @@ export function DashboardFloorThemeSwatches({
     <div
       className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-3.5"
       role="radiogroup"
-      aria-label="Commissioner dashboard floor theme"
+      aria-label="Dashboard floor theme"
     >
       {dashboardFloorThemeOptions.map((opt) => {
         const active = selectedTheme === opt.id;

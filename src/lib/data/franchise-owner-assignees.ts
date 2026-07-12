@@ -5,14 +5,14 @@ import { prisma } from "@/lib/prisma";
 /**
  * People eligible to be franchise owners for this tournament only:
  * - Franchise-owner role (`UserRole.OWNER`), or already tied to this league (team owner / linked roster row).
- * - Excludes the tournament commissioner entirely (Admin runs separately; use another login).
+ * - Excludes the tournament organizer entirely (Admin runs separately; use another login).
  * - Excludes league admin accounts (`UserRole.ADMIN`); they run the auction, not franchise bidding.
  * - Excludes random VIEWER accounts that are not stakeholders in this tournament.
  * - Re-attaches profiles for current-team owners not covered above (odd legacy rows).
  *
  * Deliberately does NOT exclude people who already own a team in a different
  * tournament: a real person can plausibly be a franchise owner across several
- * different commissioners' tournaments (same login, different leagues), and
+ * different organizers' tournaments (same login, different leagues), and
  * `deleteAuthUserIfNoOwnerReferences` already checks ownership globally before
  * ever deleting an account, so nothing else in the app assumes one team per
  * login platform-wide.

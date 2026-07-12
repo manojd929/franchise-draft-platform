@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Route-level placeholders while commissioner dashboard streams. */
+/** Route-level placeholders while the organizer dashboard streams. */
 export default function DashboardLoading() {
   return (
     <div className="px-4 sm:px-6">

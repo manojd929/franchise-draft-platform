@@ -20,9 +20,9 @@ interface PlayerCardProps {
   nominateLoading?: boolean;
   /** When true, never render nominate control (defense-in-depth for franchise-owner phone UI). */
   hideNominateControl?: boolean;
-  /** High-density tiles for commissioner boards with many nominees. */
+  /** High-density tiles for organizer boards with many nominees. */
   compact?: boolean;
-  /** Commissioner presenting: enlarge portrait frame and deepen card presence. */
+  /** Organizer presenting: enlarge portrait frame and deepen card presence. */
   presentationHighlight?: boolean;
 }
 

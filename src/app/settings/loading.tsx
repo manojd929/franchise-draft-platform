@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Settings shell placeholder while commissioner preferences stream. */
+/** Settings shell placeholder while organizer preferences stream. */
 export default function SettingsLoading() {
   return (
     <div className="px-4 sm:px-6">

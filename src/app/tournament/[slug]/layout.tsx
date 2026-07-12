@@ -21,7 +21,7 @@ export default async function TournamentLayout({ children, params }: TournamentL
 
   const user = await getSessionUser();
   const chromeViewer: TournamentChromeNavViewer =
-    user?.id === tournament.createdById ? "commissioner" : "participant";
+    user?.id === tournament.createdById ? "organizer" : "participant";
   const showFixtures = tournament.draftPhase === "COMPLETED";
   const navGroups = tournamentChromeNavGroups(slug, chromeViewer, { showFixtures });
 

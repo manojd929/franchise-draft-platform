@@ -95,7 +95,7 @@ export const ADMIN_FRANCHISE_OWNER_AUTH_UNAVAILABLE =
   "Franchise owner authentication could not be updated. Administrators must finish system configuration.";
 
 export const SIGN_IN_NOT_CONFIGURED =
-  "Sign-in is not available on this site yet. Ask your commissioner or administrator.";
+  "Sign-in is not available on this site yet. Ask your organizer or administrator.";
 
 export function finalizeSignInServerFaultUserMessage(): string {
   return GENERIC_FINALIZE_SESSION;

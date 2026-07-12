@@ -20,7 +20,7 @@ export interface DraftPlayerDto {
   notes: string | null;
   isUnavailable: boolean;
   isLocked: boolean;
-  /** True when roster row backs a commissioner-provisioned franchise-owner login (`Player.linkedOwnerUserId`). Never draftable in normal flows. */
+  /** True when roster row backs an organizer-provisioned franchise-owner login (`Player.linkedOwnerUserId`). Never draftable in normal flows. */
   runsFranchiseLogin: boolean;
   assignedTeamId: string | null;
   hasConfirmedPick: boolean;
@@ -89,7 +89,7 @@ export interface DraftSnapshotDto {
   pickTimerSeconds: number | null;
   /**
    * When LIVE, normally only players in this roster group can be nominated.
-   * Null means commissioner left the spotlight open (all roster groups eligible).
+   * Null means the organizer left the spotlight open (all roster groups eligible).
    */
   auctionSpotlightRosterCategoryId: string | null;
   auctionSpotlightRosterCategoryName: string | null;

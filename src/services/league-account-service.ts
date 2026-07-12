@@ -1,11 +1,14 @@
-import { DraftPhase } from "@/generated/prisma/enums";
+import { DraftLogAction, DraftPhase } from "@/generated/prisma/enums";
 import { ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE } from "@/lib/errors/safe-user-feedback";
 import { prisma } from "@/lib/prisma";
 import {
   isSupabaseAdminConfigured,
   SupabaseAdminUnavailableError,
 } from "@/lib/supabase/admin-client";
-import { provisionOwnerLoginForTournament } from "@/services/owner-provisioning";
+import {
+  provisionOwnerLoginForTournament,
+  type OwnerProvisioningResult,
+} from "@/services/owner-provisioning";
 import { assertTournamentOwnership, TournamentServiceError } from "@/services/tournament-service";
 
 import type {
@@ -35,8 +38,9 @@ export async function createLeagueOwnerAccount(
   const normalizedEmail = input.email.trim().toLowerCase();
   const displayName = normalizeDisplayName(input.displayName);
 
+  let result: OwnerProvisioningResult;
   try {
-    return await provisionOwnerLoginForTournament({
+    result = await provisionOwnerLoginForTournament({
       requestingUserId: organizerUserId,
       normalizedEmail,
       password: input.password,
@@ -47,6 +51,49 @@ export async function createLeagueOwnerAccount(
       throw new TournamentServiceError(ADMIN_LEAGUE_OWNER_PROVISIONING_UNAVAILABLE);
     }
     throw e;
+  }
+
+  await recordOwnerProvisioningAuditEntry({
+    tournamentId,
+    organizerUserId,
+    result,
+  });
+
+  return result;
+}
+
+/**
+ * Best-effort audit trail so ops can trace which organizer provisioned or
+ * linked which owner login and when. We intentionally swallow errors — a
+ * failed log write must not roll back a successful provision — and log to
+ * the server console so the failure is diagnosable without blocking the
+ * caller.
+ */
+async function recordOwnerProvisioningAuditEntry(params: {
+  tournamentId: string;
+  organizerUserId: string;
+  result: OwnerProvisioningResult;
+}): Promise<void> {
+  try {
+    await prisma.draftLog.create({
+      data: {
+        tournamentId: params.tournamentId,
+        action: DraftLogAction.OWNER_LOGIN_PROVISIONED,
+        actorUserId: params.organizerUserId,
+        message: params.result.linkedExisting
+          ? `Linked existing owner login for ${params.result.email}.`
+          : `Created new owner login for ${params.result.email}.`,
+        payload: {
+          ownerUserId: params.result.userId,
+          email: params.result.email,
+          linkedExisting: params.result.linkedExisting,
+        },
+      },
+    });
+  } catch (e) {
+    if (process.env.NODE_ENV !== "production" && e instanceof Error) {
+      console.error("[owner-provisioning:audit-log]", e.message);
+    }
   }
 }
 

@@ -46,7 +46,7 @@ export function computePerTeamCategoryCaps(params: {
   return result;
 }
 
-/** Sort squad rule rows to match commissioner category ordering. */
+/** Sort squad rule rows to match organizer category ordering. */
 
 export function sortSquadRulesByRosterCategoryOrder<T extends { rosterCategoryId: string }>(
   rows: T[],

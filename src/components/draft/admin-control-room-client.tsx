@@ -323,7 +323,7 @@ export function AdminControlRoomClient({
           <AlertDialogHeader>
             <AlertDialogTitle>Keyboard shortcuts</AlertDialogTitle>
             <AlertDialogDescription className="sr-only">
-              Optional accelerator keys for commissioners who prefer the keyboard during a live
+              Optional accelerator keys for organizers who prefer the keyboard during a live
               auction.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -405,7 +405,7 @@ export function AdminControlRoomClient({
                         : liveSnapshot.draftPhase === DraftPhase.FROZEN
                           ? "Big screens frozen for a pause or sponsor break. Unlock when ready."
                           : liveSnapshot.draftPhase === DraftPhase.LOCKED
-                            ? "Nominations are paused at the commissioner lock. Owners wait until you unlock."
+                            ? "Nominations are paused at the organizer lock. Owners wait until you unlock."
                             : setupOrReady
                               ? "Shuffle franchise order once, tap Start auction, then confirm each nominee as it arrives."
                               : ""}
@@ -607,7 +607,7 @@ export function AdminControlRoomClient({
                     colorHex={liveSnapshot.auctionSpotlightRosterCategoryColorHex}
                     className="text-[11px] font-normal"
                   />
-                  · your commissioner desk stays full board.
+                  · your organizer desk stays full board.
                 </p>
               ) : (
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
@@ -681,7 +681,7 @@ export function AdminControlRoomClient({
                 </Button>
                 <p className="text-xs leading-relaxed text-muted-foreground">
                   {canStartAuction
-                    ? "One tap moves the tournament LIVE. Commissioners still finalize each nominee in the banner or review panel."
+                    ? "One tap moves the tournament LIVE. Organizers still finalize each nominee in the banner or review panel."
                     : startAuctionDisabledReason}
                 </p>
               </div>
@@ -691,7 +691,7 @@ export function AdminControlRoomClient({
 
         <section
           className="flex min-h-[min(calc(100vh-18rem),800px)] flex-col overflow-hidden rounded-2xl border border-border/70 bg-background/60 shadow-inner backdrop-blur-md"
-          aria-label="Commissioner roster desk"
+          aria-label="Organizer roster desk"
         >
           <div className="flex min-h-0 min-w-0 flex-1 flex-col px-2 py-2 sm:px-3 sm:py-3">
             <DraftRoomClient

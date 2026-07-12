@@ -45,7 +45,7 @@ export async function AdminRosterGroupsBrief({ tournamentSlug }: AdminRosterGrou
             Roster groups
           </h3>
           <p className="max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
-            Athlete badges, commissioner filters, squad limits, and the auction lobby all pull from
+            Athlete badges, organizer filters, squad limits, and the auction lobby all pull from
             these groups. Edit names, palette, ordering, and archives, no redeploy needed.
           </p>
           {archivedCount > 0 ? (

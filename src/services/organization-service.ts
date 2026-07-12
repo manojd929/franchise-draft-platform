@@ -89,7 +89,7 @@ export async function getManagedOrganizationIds(userId: string): Promise<string[
 
 /**
  * The org new tournaments attach to. Existing users without one get a personal
- * org created lazily, so legacy commissioners onboard to tenancy transparently.
+ * org created lazily, so legacy organizers onboard to tenancy transparently.
  */
 export async function ensureOrganizationForUser(userId: string): Promise<string> {
   const membership = await prisma.organizationMembership.findFirst({

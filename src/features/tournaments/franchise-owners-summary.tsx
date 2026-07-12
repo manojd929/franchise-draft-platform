@@ -46,7 +46,7 @@ export function FranchiseOwnersSummary({
       </h3>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
         Only franchise-owner accounts tied to this league appear below (role Owner or linked from a
-        roster row here). Commissioner logins never appear. Removing login clears assignments here,
+        roster row here). Organizer logins never appear. Removing login clears assignments here,
         drops roster links for those accounts in this league, and deletes sign-in credentials when
         nothing else references them.
       </p>

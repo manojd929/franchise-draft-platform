@@ -14,7 +14,7 @@ import { TournamentServiceError } from "@/services/tournament-errors";
  * Permissive default squad cap for a newly created/restored roster group.
  * Must never be 0 — a 0 cap silently blocks every bid and draft pick in that
  * category. Falls back to picksPerTeam so the group imposes no accidental
- * limit; commissioners tighten caps from the Rules page.
+ * limit; organizers tighten caps from the Rules page.
  */
 async function defaultSquadCapForTournament(
   client: Prisma.TransactionClient | typeof prisma,

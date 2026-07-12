@@ -1,5 +1,5 @@
 /**
- * Commissioner dashboard backdrop themes (sport-broadcast aesthetic).
+ * Organizer dashboard backdrop themes (sport-broadcast aesthetic).
  * Central config: IDs, labels, and surface styles. Add themes by extending tuples + Records below.
  */
 
@@ -85,7 +85,7 @@ export const dashboardThemeAccentGlowClass: Record<DashboardFloorTheme, string> 
     "bg-[radial-gradient(ellipse_105%_55%_at_52%_-10%,rgba(14,165,233,0.15),transparent_58%)] dark:bg-[radial-gradient(ellipse_100%_50%_at_52%_-7%,rgba(56,189,248,0.09),transparent_52%)]",
 };
 
-/** Compact gradient strip used on commissioner theme picker cards (must stay literal for Tailwind). */
+/** Compact gradient strip used on organizer theme picker cards (must stay literal for Tailwind). */
 export const dashboardFloorThemeSwatchBannerClass: Record<DashboardFloorTheme, string> = {
   broadcast:
     "relative min-h-[3.75rem] w-full shrink-0 bg-gradient-to-br from-neutral-200/85 via-zinc-100 to-indigo-200/65 dark:from-[#2a3140] dark:via-[#161b26] dark:to-[#172a3f]/90",

@@ -45,7 +45,7 @@ export function DashboardFloorBackdropDecor({
 }
 
 /**
- * Applies floor gradient + cinematic layers for the commissioner dashboard chrome or previews.
+ * Applies floor gradient + cinematic layers for the organizer dashboard chrome or previews.
  */
 export function DashboardFloorBackdropShell({
   theme,
