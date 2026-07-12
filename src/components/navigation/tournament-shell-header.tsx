@@ -61,8 +61,8 @@ export function TournamentShellHeader({
         <div className="h-1 w-full" style={{ backgroundColor: tournamentColorHex }} aria-hidden />
       ) : null}
 
-      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-5">
-        <div className="overflow-hidden rounded-[28px] border border-border/70 bg-gradient-to-br from-background via-card to-muted/20 shadow-[0_18px_60px_-36px_rgba(15,23,42,0.35)]">
+      <div className="px-4 py-4 sm:px-6 sm:py-5">
+        <div className="mx-auto w-full max-w-7xl overflow-hidden rounded-[28px] border border-border/70 bg-gradient-to-br from-background via-card to-muted/20 shadow-[0_18px_60px_-36px_rgba(15,23,42,0.35)]">
           <div className="border-b border-border/60 px-4 py-4 sm:px-6 sm:py-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">

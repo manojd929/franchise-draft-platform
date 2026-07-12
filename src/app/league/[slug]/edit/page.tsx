@@ -24,27 +24,29 @@ export default async function EditLeaguePage({ params }: PageProps) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link
-          href={ROUTES.league(slug)}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← Back to league
-        </Link>
-        <AccountHeaderActions />
-      </div>
-      <h1 className="mt-8 text-4xl font-semibold tracking-tight">Edit league</h1>
-      <div className="mt-12">
-        <LeagueForm
-          existing={{
-            slug: league.slug,
-            name: league.name,
-            description: league.description,
-            logoUrl: league.logoUrl,
-            colorHex: league.colorHex,
-          }}
-        />
+    <div className="px-4 sm:px-6">
+      <div className="mx-auto w-full max-w-4xl py-16">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Link
+            href={ROUTES.league(slug)}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            ← Back to league
+          </Link>
+          <AccountHeaderActions />
+        </div>
+        <h1 className="mt-8 text-4xl font-semibold tracking-tight">Edit league</h1>
+        <div className="mt-12">
+          <LeagueForm
+            existing={{
+              slug: league.slug,
+              name: league.name,
+              description: league.description,
+              logoUrl: league.logoUrl,
+              colorHex: league.colorHex,
+            }}
+          />
+        </div>
       </div>
     </div>
   );

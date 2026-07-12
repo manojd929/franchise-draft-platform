@@ -84,182 +84,187 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 pb-14 sm:gap-10 sm:px-6 sm:py-12">
-      <header className="flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-        <div className="max-w-xl">
-          <h1
-            className="text-3xl font-semibold tracking-tight sm:text-4xl"
-            data-testid="dashboard-title"
-          >
-            Your tournaments
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-            Set up teams and players, pick how squads are formed (draft, random, or a live auction),
-            then run it on the shared board.
-          </p>
-        </div>
-        {userRole === UserRole.ADMIN ? (
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <Link
-              href={ROUTES.leagueNew}
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "min-h-11 touch-manipulation justify-center",
-              )}
+    <div className="px-4 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 py-8 pb-14 sm:gap-10 sm:py-12">
+        <header className="flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+          <div className="max-w-xl">
+            <h1
+              className="text-3xl font-semibold tracking-tight sm:text-4xl"
+              data-testid="dashboard-title"
             >
-              New league
-            </Link>
-            <Link
-              href={ROUTES.tournamentNew}
-              className={cn(buttonVariants(), "min-h-11 touch-manipulation justify-center")}
-            >
-              New tournament
-            </Link>
+              Your tournaments
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+              Set up teams and players, pick how squads are formed (draft, random, or a live
+              auction), then run it on the shared board.
+            </p>
           </div>
-        ) : null}
-      </header>
-
-      {userRole === UserRole.ADMIN && leagues.length > 0 ? (
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-            Your leagues
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {leagues.map((league) => (
+          {userRole === UserRole.ADMIN ? (
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <Link
-                key={league.id}
-                href={ROUTES.league(league.slug)}
-                className="group flex items-center gap-3 rounded-xl border border-border/70 bg-card/60 p-4 backdrop-blur-sm transition-colors hover:border-brand/50"
+                href={ROUTES.leagueNew}
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "min-h-11 touch-manipulation justify-center",
+                )}
               >
-                <span
-                  className="flex size-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white"
-                  style={{ backgroundColor: league.colorHex ?? "#f2b21a" }}
-                >
-                  {league.name.slice(0, 1).toUpperCase()}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate font-medium group-hover:text-brand-accent">
-                    {league.name}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {league._count.tournaments}{" "}
-                    {league._count.tournaments === 1 ? "tournament" : "tournaments"}
-                  </span>
-                </span>
+                New league
               </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
+              <Link
+                href={ROUTES.tournamentNew}
+                className={cn(buttonVariants(), "min-h-11 touch-manipulation justify-center")}
+              >
+                New tournament
+              </Link>
+            </div>
+          ) : null}
+        </header>
 
-      {loadError ? (
-        <Card className="border-destructive/40 bg-destructive/5">
-          <CardHeader>
-            <CardTitle>Connection required</CardTitle>
-            <CardDescription>{loadError}</CardDescription>
-          </CardHeader>
-        </Card>
-      ) : (
-        <section className="grid gap-5 md:grid-cols-2">
-          {tournaments.length === 0 ? (
-            <Card className="border-dashed">
-              <CardHeader>
-                <CardTitle>No tournaments yet</CardTitle>
-                <CardDescription>
-                  {userRole === UserRole.ADMIN
-                    ? "Create one tournament. Then add teams, owners, and players before the auction."
-                    : "No tournaments are assigned to your owner account yet. Ask your administrator to assign your team."}
-                </CardDescription>
-              </CardHeader>
-              {userRole === UserRole.ADMIN ? (
-                <CardContent>
-                  <Link href={ROUTES.tournamentNew} className={cn(buttonVariants())}>
-                    Create tournament
-                  </Link>
-                </CardContent>
-              ) : null}
-            </Card>
-          ) : (
-            tournaments.map((tournament) => {
-              const checklist = computeTournamentSetupChecklist({
-                tournamentSlug: tournament.slug,
-                counts: {
-                  activeRosterCategories: tournament._count.rosterCategories,
-                  activeTeams: tournament._count.teams,
-                  activePlayers: tournament._count.players,
-                  teamsWithOwner: tournament.teams.length,
-                  configuredSquadRules: tournament._count.squadRules,
-                  draftPhase: tournament.draftPhase,
-                },
-              });
-              return (
-                <Card key={tournament.id} className="border-border/70 bg-card/60 backdrop-blur-sm">
-                  <CardHeader>
-                    {userRole === UserRole.ADMIN ? (
-                      <CardAction>
-                        <DeleteTournamentButton
-                          tournamentSlug={tournament.slug}
-                          tournamentName={tournament.name}
-                          iconOnly
-                        />
-                      </CardAction>
-                    ) : null}
-                    <div className="flex items-start justify-between gap-3 pr-2">
-                      <div>
-                        <CardTitle className="text-xl">{tournament.name}</CardTitle>
-                        <CardDescription className="font-mono text-xs">
-                          /{tournament.slug}
-                        </CardDescription>
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          (tournament.draftPhase === "LIVE" ||
-                            tournament.draftPhase === "PAUSED") &&
-                            "border-brand/40 bg-brand/15 text-brand-accent",
-                        )}
-                      >
-                        {(tournament.draftPhase === "LIVE" ||
-                          tournament.draftPhase === "PAUSED") && (
-                          <span
-                            className="mr-1.5 inline-block size-1.5 animate-pulse rounded-full bg-brand align-middle"
-                            aria-hidden
-                          />
-                        )}
-                        {DRAFT_PHASE_LABEL[tournament.draftPhase]}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-4">
-                    <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                      <span>
-                        {SPORT_META[tournament.sport].emoji} {SPORT_META[tournament.sport].label}
-                      </span>
-                      <span>{tournament._count.teams} teams</span>
-                      <span>{tournament._count.players} players</span>
-                      <span>{TOURNAMENT_FORMAT_LABEL[tournament.format]}</span>
-                    </div>
-                    {userRole === UserRole.ADMIN ? (
-                      <TournamentSetupChecklistPanel checklist={checklist} />
-                    ) : null}
-                    <div className="border-t border-border/60 pt-4">
-                      <Link
-                        href={ROUTES.tournament(tournament.slug)}
-                        className={cn(
-                          buttonVariants({ variant: "default", size: "sm" }),
-                          "min-h-11 w-full touch-manipulation justify-center px-4 sm:min-h-9",
-                        )}
-                      >
-                        Enter
-                      </Link>
-                    </div>
+        {userRole === UserRole.ADMIN && leagues.length > 0 ? (
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+              Your leagues
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {leagues.map((league) => (
+                <Link
+                  key={league.id}
+                  href={ROUTES.league(league.slug)}
+                  className="group flex items-center gap-3 rounded-xl border border-border/70 bg-card/60 p-4 backdrop-blur-sm transition-colors hover:border-brand/50"
+                >
+                  <span
+                    className="flex size-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white"
+                    style={{ backgroundColor: league.colorHex ?? "#f2b21a" }}
+                  >
+                    {league.name.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium group-hover:text-brand-accent">
+                      {league.name}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {league._count.tournaments}{" "}
+                      {league._count.tournaments === 1 ? "tournament" : "tournaments"}
+                    </span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {loadError ? (
+          <Card className="border-destructive/40 bg-destructive/5">
+            <CardHeader>
+              <CardTitle>Connection required</CardTitle>
+              <CardDescription>{loadError}</CardDescription>
+            </CardHeader>
+          </Card>
+        ) : (
+          <section className="grid gap-5 md:grid-cols-2">
+            {tournaments.length === 0 ? (
+              <Card className="border-dashed">
+                <CardHeader>
+                  <CardTitle>No tournaments yet</CardTitle>
+                  <CardDescription>
+                    {userRole === UserRole.ADMIN
+                      ? "Create one tournament. Then add teams, owners, and players before the auction."
+                      : "No tournaments are assigned to your owner account yet. Ask your administrator to assign your team."}
+                  </CardDescription>
+                </CardHeader>
+                {userRole === UserRole.ADMIN ? (
+                  <CardContent>
+                    <Link href={ROUTES.tournamentNew} className={cn(buttonVariants())}>
+                      Create tournament
+                    </Link>
                   </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </section>
-      )}
+                ) : null}
+              </Card>
+            ) : (
+              tournaments.map((tournament) => {
+                const checklist = computeTournamentSetupChecklist({
+                  tournamentSlug: tournament.slug,
+                  counts: {
+                    activeRosterCategories: tournament._count.rosterCategories,
+                    activeTeams: tournament._count.teams,
+                    activePlayers: tournament._count.players,
+                    teamsWithOwner: tournament.teams.length,
+                    configuredSquadRules: tournament._count.squadRules,
+                    draftPhase: tournament.draftPhase,
+                  },
+                });
+                return (
+                  <Card
+                    key={tournament.id}
+                    className="border-border/70 bg-card/60 backdrop-blur-sm"
+                  >
+                    <CardHeader>
+                      {userRole === UserRole.ADMIN ? (
+                        <CardAction>
+                          <DeleteTournamentButton
+                            tournamentSlug={tournament.slug}
+                            tournamentName={tournament.name}
+                            iconOnly
+                          />
+                        </CardAction>
+                      ) : null}
+                      <div className="flex items-start justify-between gap-3 pr-2">
+                        <div>
+                          <CardTitle className="text-xl">{tournament.name}</CardTitle>
+                          <CardDescription className="font-mono text-xs">
+                            /{tournament.slug}
+                          </CardDescription>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            (tournament.draftPhase === "LIVE" ||
+                              tournament.draftPhase === "PAUSED") &&
+                              "border-brand/40 bg-brand/15 text-brand-accent",
+                          )}
+                        >
+                          {(tournament.draftPhase === "LIVE" ||
+                            tournament.draftPhase === "PAUSED") && (
+                            <span
+                              className="mr-1.5 inline-block size-1.5 animate-pulse rounded-full bg-brand align-middle"
+                              aria-hidden
+                            />
+                          )}
+                          {DRAFT_PHASE_LABEL[tournament.draftPhase]}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-4">
+                      <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                        <span>
+                          {SPORT_META[tournament.sport].emoji} {SPORT_META[tournament.sport].label}
+                        </span>
+                        <span>{tournament._count.teams} teams</span>
+                        <span>{tournament._count.players} players</span>
+                        <span>{TOURNAMENT_FORMAT_LABEL[tournament.format]}</span>
+                      </div>
+                      {userRole === UserRole.ADMIN ? (
+                        <TournamentSetupChecklistPanel checklist={checklist} />
+                      ) : null}
+                      <div className="border-t border-border/60 pt-4">
+                        <Link
+                          href={ROUTES.tournament(tournament.slug)}
+                          className={cn(
+                            buttonVariants({ variant: "default", size: "sm" }),
+                            "min-h-11 w-full touch-manipulation justify-center px-4 sm:min-h-9",
+                          )}
+                        >
+                          Enter
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </section>
+        )}
+      </div>
     </div>
   );
 }

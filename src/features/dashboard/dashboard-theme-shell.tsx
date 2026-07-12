@@ -22,8 +22,8 @@ export function DashboardThemeShell({ children }: Readonly<{ children: React.Rea
         "transition-[background] duration-500 ease-out motion-reduce:transition-none",
       )}
     >
-      <header className="border-b border-border/40 bg-background/80">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-2.5 md:gap-x-5 md:px-6 md:py-3">
+      <header className="border-b border-border/40 bg-background/80 px-4 sm:px-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-3 py-2.5 md:gap-x-5 md:py-3">
           <div className="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2 sm:gap-x-8">
             <Link
               href={ROUTES.settings}
